@@ -1,0 +1,2784 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quiz Night Live — Edizione Pierini</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #070b14;
+      --card-glass: rgba(15, 23, 42, 0.78);
+      --border-glass: rgba(148, 163, 184, 0.16);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-deep);
+      color: #f8fafc;
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.14), transparent 38%),
+        radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.16), transparent 40%),
+        radial-gradient(circle at 50% 90%, rgba(245, 158, 11, 0.12), transparent 45%);
+    }
+    .font-display {
+      font-family: 'Outfit', sans-serif;
+    }
+    .glass-panel {
+      background: var(--card-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+    }
+    .buzzer-btn {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease;
+      user-select: none;
+    }
+    .buzzer-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+    .pulse-ring {
+      animation: pulseRing 2s infinite;
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45); }
+      70% { box-shadow: 0 0 0 14px rgba(56, 189, 248, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+    .pop-in {
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.88) translateY(10px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .spin-slow {
+      animation: spinSlow 7s linear infinite;
+    }
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .eq-bar {
+      animation: eqBounce 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes eqBounce {
+      0% { transform: scaleY(0.25); }
+      100% { transform: scaleY(1); }
+    }
+    .timer-bar-transition {
+      transition: width 0.25s linear, background-color 0.3s ease;
+    }
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 60;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-sky-500 selection:text-white">
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Toast Notifiche -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- ========================================================= -->
+  <!-- 1. SCHERMATA INIZIALE (SCELTA RUOLO)                      -->
+  <!-- ========================================================= -->
+  <main id="screen-landing" class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8">
+    <div class="max-w-4xl w-full text-center space-y-8 pop-in">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel text-xs sm:text-sm font-semibold text-amber-300 tracking-wide uppercase">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        Live Multiplayer Pub Quiz • Edizione 🪙 Pierini
+      </div>
+
+      <div class="space-y-3">
+        <h1 class="font-display text-4xl sm:text-6xl md:text-7xl font-black tracking-tight bg-gradient-to-r from-sky-300 via-white to-amber-300 bg-clip-text text-transparent">
+          QUIZ NIGHT LIVE
+        </h1>
+        <p class="text-slate-300 text-base sm:text-xl max-w-2xl mx-auto">
+          80 domande calibrate, manche musicali e cinema, 🪙 Pierini in palio e i commenti radiofonici di Marco &amp; Giulia.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-left pt-2">
+        <!-- Card Schermo TV -->
+        <button id="btn-choose-tv" class="group glass-panel rounded-3xl p-6 sm:p-7 hover:border-sky-400/60 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between shadow-xl">
+          <div class="space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+              📺
+            </div>
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white">Schermo TV</h2>
+              <p class="text-slate-400 text-sm mt-1 leading-relaxed">
+                Crea la stanza sul Mac/TV, mostra il QR Code, riproduci musica e sigle e ascolta Marco &amp; Giulia in diretta.
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 inline-flex items-center gap-2 text-sky-400 font-semibold text-sm">
+            Crea Stanza &amp; Avvia TV <span class="group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+        </button>
+
+        <!-- Card Pulsantiera Squadra -->
+        <button id="btn-choose-team" class="group glass-panel rounded-3xl p-6 sm:p-7 hover:border-fuchsia-400/60 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between shadow-xl">
+          <div class="space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-fuchsia-500/20 border border-fuchsia-400/30 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+              📱
+            </div>
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white">Pulsantiera Squadra</h2>
+              <p class="text-slate-400 text-sm mt-1 leading-relaxed">
+                Entra con il codice stanza dallo smartphone, scegli nome ed emoji e rispondi più veloce per accumulare Pierini!
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 inline-flex items-center gap-2 text-fuchsia-400 font-semibold text-sm">
+            Unisciti come Squadra <span class="group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+        </button>
+
+        <!-- Card Regia Remota -->
+        <button id="btn-choose-remote" class="group glass-panel rounded-3xl p-6 sm:p-7 hover:border-amber-400/60 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between shadow-xl">
+          <div class="space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+              🎙️
+            </div>
+            <div>
+              <h2 class="font-display text-2xl font-bold text-white">Regia Remota</h2>
+              <p class="text-slate-400 text-sm mt-1 leading-relaxed">
+                Telecomando per il presentatore: leggi le risposte in anticipo, attiva Pierini Doppi x2 e lancia i Flash DJ.
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 inline-flex items-center gap-2 text-amber-400 font-semibold text-sm">
+            Apri Telecomando Regia <span class="group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="pt-2">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel text-xs text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          Connessione diretta P2P istantanea • Zero configurazione server
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- 2. SCHERMO TV / HOST                                      -->
+  <!-- ========================================================= -->
+  <section id="screen-tv" class="hidden min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <!-- Header TV -->
+    <header class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+      <div class="flex items-center gap-3">
+        <button id="tv-btn-home" class="p-2.5 rounded-xl glass-panel hover:bg-slate-800 text-slate-300 text-sm font-semibold" title="Torna alla home">
+          ← Home
+        </button>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-display font-black text-xl sm:text-2xl tracking-tight text-white">QUIZ NIGHT LIVE</span>
+            <span id="tv-room-badge" class="px-3 py-0.5 rounded-lg bg-sky-500/20 border border-sky-400/40 font-mono font-bold text-sky-300 text-sm sm:text-base">
+              ----
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+            <span id="tv-conn-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="tv-conn-text">Avvio stanza...</span>
+            <span>•</span>
+            <span id="tv-teams-count">0 squadre</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controlli Rapidi TV -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="tv-btn-dj-settings-header" class="px-3 py-2 rounded-xl glass-panel hover:bg-fuchsia-500/20 border-fuchsia-400/30 text-xs sm:text-sm font-semibold text-fuchsia-200 transition">
+          ⚙️ Voce AI
+        </button>
+        <button id="tv-btn-dj-toggle" class="px-3 py-2 rounded-xl glass-panel hover:bg-slate-800 text-xs sm:text-sm font-semibold text-amber-300 transition">
+          🎙️ DJ ON
+        </button>
+        <button id="tv-btn-sound" class="px-3 py-2 rounded-xl glass-panel hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-200 transition">
+          🔊 Audio ON
+        </button>
+        <button id="tv-btn-double" class="px-3 py-2 rounded-xl glass-panel hover:bg-amber-500/20 border-amber-400/30 text-xs sm:text-sm font-bold text-amber-300 transition">
+          🔥 Pierini x2: OFF
+        </button>
+        <button id="tv-btn-suspense" class="px-3 py-2 rounded-xl glass-panel hover:bg-purple-500/20 border-purple-400/30 text-xs sm:text-sm font-bold text-purple-300 transition">
+          🎭 Suspense: OFF
+        </button>
+        <button id="tv-btn-deck" class="px-3 py-2 rounded-xl glass-panel hover:bg-slate-800 text-xs sm:text-sm font-semibold text-sky-300 transition">
+          📚 Domande (<span id="tv-deck-count">80</span>)
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENUTO DINAMICO TV -->
+    <div class="flex-1 flex flex-col justify-center py-6">
+      <!-- FASE A: LOBBY / SALA D'ATTESA -->
+      <div id="tv-phase-lobby" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Colonna Sinistra: QR Code & Codice Stanza -->
+        <div class="lg:col-span-5 glass-panel rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-2xl">
+          <div class="space-y-1">
+            <span class="text-xs font-bold uppercase tracking-widest text-sky-400">Scansiona per giocare</span>
+            <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-white">Unisciti alla Stanza</h2>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl inline-block shadow-lg mx-auto">
+            <div id="tv-qrcode" class="w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center"></div>
+          </div>
+
+          <div class="space-y-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Oppure inserisci il codice</p>
+            <div id="tv-room-code-big" class="font-mono text-4xl sm:text-5xl font-black tracking-[0.22em] text-amber-300 bg-slate-900/90 py-3 px-6 rounded-2xl border border-slate-700/80 inline-block">
+              ----
+            </div>
+          </div>
+
+          <!-- Impostazioni Partita Rapide -->
+          <div class="pt-2 border-t border-slate-800 space-y-3 text-left">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-semibold text-slate-300">⏱️ Tempo risposta:</span>
+              <div class="flex gap-1.5" id="tv-timer-presets">
+                <button data-sec="10" class="timer-preset-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">10s</button>
+                <button data-sec="12" class="timer-preset-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">12s</button>
+                <button data-sec="15" class="timer-preset-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500 text-slate-950">15s</button>
+                <button data-sec="20" class="timer-preset-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">20s</button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-semibold text-slate-300">⚠️ Malus errore (-200 🪙):</span>
+              <button id="tv-btn-penalty" class="px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                Disattivato
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonna Destra: Filtro Categorie & Squadre Connesse -->
+        <div class="lg:col-span-7 space-y-6">
+          <!-- Selettore Categorie -->
+          <div class="glass-panel rounded-3xl p-5 sm:p-6 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="font-display text-lg font-bold text-white">🎯 Categorie in Gioco</h3>
+                <p class="text-xs text-slate-400">Domande mescolate automaticamente per alternare gli argomenti</p>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button id="tv-cat-all" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30 hover:bg-sky-500/30">Tutte</button>
+                <button id="tv-cat-culture" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/30">🧠 Cultura</button>
+                <button id="tv-cat-show" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 hover:bg-amber-500/30">🍿 Cinema &amp; TV</button>
+                <button id="tv-cat-songs" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/30 hover:bg-fuchsia-500/30">🎵 Canzoni</button>
+                <button id="tv-btn-shuffle" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700">🔀 Mescola</button>
+              </div>
+            </div>
+
+            <div id="tv-category-pills" class="flex flex-wrap gap-2"></div>
+
+            <div class="text-xs text-slate-400 flex items-center justify-between pt-1">
+              <span>Domande selezionate: <strong id="tv-active-q-count" class="text-white">80</strong></span>
+              <span>Valuta in palio: <strong class="text-amber-300">🪙 Pierini</strong></span>
+            </div>
+          </div>
+
+          <!-- Lista Squadre in Attesa -->
+          <div class="glass-panel rounded-3xl p-5 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-display text-lg font-bold text-white">👥 Squadre in Sala d'Attesa</h3>
+              <span id="tv-lobby-team-badge" class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                0 pronte
+              </span>
+            </div>
+
+            <div id="tv-lobby-teams" class="grid grid-cols-1 sm:grid-cols-2 gap-3 min-h-[120px]">
+              <div class="col-span-full flex flex-col items-center justify-center text-slate-500 py-8 text-sm border border-dashed border-slate-800 rounded-2xl">
+                In attesa che le squadre inquadrino il QR Code...
+              </div>
+            </div>
+
+            <div class="pt-2 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="tv-btn-add-demo" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition">
+                  + Squadra Demo
+                </button>
+                <button id="tv-btn-welcome-intro" class="px-4 py-2.5 rounded-xl bg-fuchsia-500/20 hover:bg-fuchsia-500/35 border border-fuchsia-400/40 text-xs font-bold text-fuchsia-200 transition">
+                  🎙️ Sigla &amp; Regole
+                </button>
+              </div>
+              <button id="tv-btn-start-game" class="px-7 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-display font-black text-base sm:text-lg shadow-lg shadow-emerald-500/25 transition transform hover:scale-[1.02]">
+                🚀 INIZIA LA PARTITA!
+              </button>
+            </div>
+
+            <!-- Stato Live Marco & Giulia in Lobby -->
+            <div id="tv-lobby-dj-bar" class="hidden pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10px] font-black uppercase animate-pulse">ON AIR</span>
+                <span id="tv-lobby-dj-status" class="text-fuchsia-200 font-semibold">Marco &amp; Giulia in onda...</span>
+              </div>
+              <button id="tv-btn-lobby-dj-stop" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">
+                ⏹️ Stop
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FASE B: DOMANDA IN CORSO & SVELAMENTO -->
+      <div id="tv-phase-question" class="hidden space-y-6">
+        <!-- Barra Info Domanda & Timer -->
+        <div class="glass-panel rounded-3xl p-4 sm:p-5 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span id="tv-q-progress" class="px-3 py-1 rounded-xl bg-slate-800 text-xs sm:text-sm font-bold text-slate-200">
+                Domanda 1 / 80
+              </span>
+              <span id="tv-q-category" class="px-3 py-1 rounded-xl bg-sky-500/20 border border-sky-400/30 text-xs sm:text-sm font-bold text-sky-300">
+                Categoria
+              </span>
+              <span id="tv-q-subtype-badge" class="hidden px-3 py-1 rounded-xl bg-fuchsia-500/20 border border-fuchsia-400/30 text-xs sm:text-sm font-bold text-fuchsia-300">
+                Sottotipo
+              </span>
+              <span id="tv-q-double-badge" class="hidden px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-400/40 text-xs sm:text-sm font-black text-amber-300 animate-pulse">
+                🔥 PIERINI DOPPI x2!
+              </span>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <span id="tv-answered-counter" class="text-xs sm:text-sm font-semibold text-slate-300">
+                Risposte: 0 / 0
+              </span>
+              <div id="tv-timer-number" class="font-mono text-2xl sm:text-3xl font-black text-sky-300 w-14 text-right">
+                15s
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra Progresso Timer -->
+          <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div id="tv-timer-bar" class="h-full bg-gradient-to-r from-sky-400 to-emerald-400 timer-bar-transition" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- Card Testo Domanda + Media (Audio / Lyrics / Quote) -->
+        <div class="glass-panel rounded-3xl p-6 sm:p-10 text-center space-y-6 shadow-2xl">
+          <h2 id="tv-q-text" class="font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
+            Testo della domanda...
+          </h2>
+
+          <!-- Box Audio (Canzoni / Colonne Sonore / Sigle) -->
+          <div id="tv-media-audio" class="hidden max-w-xl mx-auto glass-panel rounded-2xl p-5 border-fuchsia-500/30 bg-fuchsia-950/20">
+            <div class="flex flex-col sm:flex-row items-center gap-5">
+              <div class="relative w-24 h-24 shrink-0 flex items-center justify-center">
+                <div id="tv-vinyl-disc" class="w-24 h-24 rounded-full bg-gradient-to-tr from-slate-950 via-slate-800 to-slate-900 border-4 border-fuchsia-400/40 shadow-xl flex items-center justify-center spin-slow">
+                  <div class="w-8 h-8 rounded-full bg-fuchsia-500/80 border-2 border-white flex items-center justify-center text-xs">🎵</div>
+                </div>
+                <img id="tv-song-cover" src="" alt="Copertina" class="hidden absolute inset-0 w-24 h-24 rounded-2xl object-cover shadow-xl border-2 border-emerald-400" />
+              </div>
+
+              <div class="flex-1 text-center sm:text-left space-y-2">
+                <div class="flex items-center justify-center sm:justify-start gap-1.5 h-5" id="tv-eq-bars">
+                  <span class="w-1.5 h-full bg-fuchsia-400 rounded-full eq-bar" style="animation-delay:0.0s"></span>
+                  <span class="w-1.5 h-full bg-sky-400 rounded-full eq-bar" style="animation-delay:0.2s"></span>
+                  <span class="w-1.5 h-full bg-amber-400 rounded-full eq-bar" style="animation-delay:0.4s"></span>
+                  <span class="w-1.5 h-full bg-emerald-400 rounded-full eq-bar" style="animation-delay:0.1s"></span>
+                  <span class="w-1.5 h-full bg-fuchsia-400 rounded-full eq-bar" style="animation-delay:0.3s"></span>
+                </div>
+                <p id="tv-audio-status" class="text-sm font-bold text-fuchsia-200">
+                  🎧 Ascolta l'estratto musicale...
+                </p>
+                <p id="tv-song-reveal-info" class="hidden text-base font-extrabold text-emerald-300"></p>
+                <div class="pt-1 flex flex-wrap justify-center sm:justify-start gap-2">
+                  <button id="tv-btn-audio-toggle" class="px-3.5 py-1.5 rounded-xl bg-fuchsia-500/25 hover:bg-fuchsia-500/40 border border-fuchsia-400/40 text-xs font-bold text-white transition">
+                    ⏸️ Pausa
+                  </button>
+                  <button id="tv-btn-audio-restart" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition">
+                    🔄 Riascolta
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Box Completa il Testo (Karaoke) -->
+          <div id="tv-media-lyrics" class="hidden max-w-2xl mx-auto glass-panel rounded-2xl p-6 border-amber-400/30 bg-amber-950/15 space-y-2">
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-300">🎤 Completa la strofa</span>
+            <p id="tv-lyrics-line" class="font-display text-xl sm:text-3xl font-bold text-amber-100 italic leading-relaxed">
+              "..."
+            </p>
+            <p id="tv-lyrics-artist" class="text-xs sm:text-sm text-slate-400 font-semibold"></p>
+          </div>
+
+          <!-- Box Citazione Cult (Film / Serie TV / Cartoni) -->
+          <div id="tv-media-quote" class="hidden max-w-2xl mx-auto glass-panel rounded-2xl p-6 border-sky-400/30 bg-sky-950/20 space-y-2">
+            <span class="text-xs font-bold uppercase tracking-widest text-sky-300">💬 Citazione Cult</span>
+            <p id="tv-quote-line" class="font-display text-xl sm:text-3xl font-bold text-sky-100 italic leading-relaxed">
+              "..."
+            </p>
+            <p id="tv-quote-hint" class="text-xs sm:text-sm text-slate-400 font-semibold"></p>
+          </div>
+
+          <!-- Griglia 4 Opzioni -->
+          <div id="tv-options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-left"></div>
+
+          <!-- Banner Squadra più veloce allo svelamento -->
+          <div id="tv-fastest-banner" class="hidden p-4 rounded-2xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-200 font-semibold text-sm sm:text-base"></div>
+        </div>
+
+        <!-- Barra Azioni Presentatore su TV -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div id="tv-live-answers-strip" class="flex flex-wrap items-center gap-2"></div>
+          <div class="flex flex-wrap items-center gap-3 ml-auto">
+            <button id="tv-btn-reveal" class="px-6 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-display font-black text-base shadow-lg transition">
+              👁️ Svela Risposta
+            </button>
+            <button id="tv-btn-leaderboard" class="hidden px-6 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-display font-black text-base shadow-lg transition">
+              📊 Classifica
+            </button>
+            <button id="tv-btn-next" class="hidden px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-display font-black text-base shadow-lg transition">
+              Prossima Domanda →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FASE C: CLASSIFICA (INTERMEDIA / FLASH DJ / PODIO FINALE) -->
+      <div id="tv-phase-leaderboard" class="hidden space-y-6">
+        <!-- Banner Radio Quiz Night (Marco & Giulia) -->
+        <div id="tv-dj-banner" class="glass-panel rounded-3xl p-4 sm:p-5 border-fuchsia-400/40 bg-gradient-to-r from-fuchsia-950/40 via-slate-900/80 to-sky-950/40 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-fuchsia-500/25 border border-fuchsia-400/40 flex items-center justify-center text-2xl shrink-0">
+              🎙️
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10px] font-black uppercase tracking-wider animate-pulse">ON AIR</span>
+                <span class="font-display font-bold text-sm sm:text-base text-white">RADIO QUIZ NIGHT • MARCO &amp; GIULIA</span>
+              </div>
+              <p id="tv-dj-status-text" class="text-xs text-fuchsia-200 mt-0.5">
+                Pronti a commentare la classifica in 🪙 Pierini!
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="tv-btn-dj-replay" class="px-3.5 py-2 rounded-xl bg-fuchsia-500/25 hover:bg-fuchsia-500/40 border border-fuchsia-400/40 text-xs font-bold text-white transition">
+              🔊 Riascolta
+            </button>
+            <button id="tv-btn-dj-settings" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition" title="Configura Chiave Gemini e Base Musicale">
+              ⚙️
+            </button>
+          </div>
+        </div>
+
+        <!-- Intestazione Classifica -->
+        <div class="text-center space-y-1">
+          <span id="tv-lb-badge" class="inline-block px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-xs font-black uppercase tracking-widest text-amber-300">
+            🏆 CLASSIFICA GENERALE
+          </span>
+          <h2 id="tv-lb-title" class="font-display text-3xl sm:text-5xl font-black text-white">
+            Classifica Provvisoria
+          </h2>
+          <p id="tv-lb-subtitle" class="text-slate-300 text-sm sm:text-base">
+            Chi ha accumulato più 🪙 Pierini finora?
+          </p>
+        </div>
+
+        <!-- PODIO FINALE A 3 GRADINI (Visibile solo a fine partita) -->
+        <div id="tv-podium-stage" class="hidden max-w-4xl mx-auto pt-4 space-y-6">
+          <div class="grid grid-cols-3 gap-3 sm:gap-6 items-end text-center">
+            <!-- 2° Posto -->
+            <div class="glass-panel rounded-3xl p-4 sm:p-6 border-slate-400/40 flex flex-col justify-between min-h-[210px] sm:min-h-[250px]">
+              <div class="space-y-2">
+                <span class="text-3xl sm:text-4xl">🥈</span>
+                <div id="podium-2-emoji" class="text-3xl sm:text-4xl">❓</div>
+                <div id="podium-2-name" class="font-display font-bold text-base sm:text-xl text-white truncate">???</div>
+              </div>
+              <div id="podium-2-score" class="font-mono font-black text-sm sm:text-lg text-slate-300 bg-slate-800/80 py-1.5 px-3 rounded-xl">
+                --- 🪙
+              </div>
+            </div>
+
+            <!-- 1° Posto -->
+            <div class="glass-panel rounded-3xl p-4 sm:p-7 border-amber-400/60 bg-gradient-to-b from-amber-500/20 to-slate-900/90 flex flex-col justify-between min-h-[260px] sm:min-h-[310px] shadow-2xl shadow-amber-500/20">
+              <div class="space-y-2">
+                <span class="text-4xl sm:text-5xl">👑</span>
+                <div id="podium-1-emoji" class="text-4xl sm:text-5xl">❓</div>
+                <div id="podium-1-name" class="font-display font-black text-lg sm:text-2xl text-amber-200 truncate">???</div>
+              </div>
+              <div id="podium-1-score" class="font-mono font-black text-base sm:text-xl text-amber-300 bg-amber-500/20 border border-amber-400/40 py-2 px-3 rounded-xl">
+                --- 🪙
+              </div>
+            </div>
+
+            <!-- 3° Posto -->
+            <div class="glass-panel rounded-3xl p-4 sm:p-6 border-amber-700/50 flex flex-col justify-between min-h-[180px] sm:min-h-[215px]">
+              <div class="space-y-2">
+                <span class="text-3xl sm:text-4xl">🥉</span>
+                <div id="podium-3-emoji" class="text-3xl sm:text-4xl">❓</div>
+                <div id="podium-3-name" class="font-display font-bold text-base sm:text-xl text-white truncate">???</div>
+              </div>
+              <div id="podium-3-score" class="font-mono font-black text-sm sm:text-lg text-amber-500 bg-slate-800/80 py-1.5 px-3 rounded-xl">
+                --- 🪙
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap justify-center gap-3">
+            <button id="tv-btn-reveal-podium" class="px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-display font-black text-base sm:text-lg shadow-xl transition transform hover:scale-105">
+              🥁 Svela 3° Posto
+            </button>
+            <button id="tv-btn-restart-same" class="hidden px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-display font-black text-base shadow-lg transition">
+              🔄 Nuova Partita (Stesse Squadre)
+            </button>
+          </div>
+        </div>
+
+        <!-- LISTA CLASSIFICA -->
+        <div id="tv-leaderboard-list" class="max-w-3xl mx-auto w-full space-y-3"></div>
+
+        <!-- Pulsanti Navigazione Classifica -->
+        <div id="tv-lb-actions" class="flex flex-wrap justify-center gap-3 pt-2">
+          <button id="tv-btn-lb-next" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-display font-black text-lg shadow-lg transition">
+            Prossima Domanda →
+          </button>
+          <button id="tv-btn-lb-podium" class="px-6 py-4 rounded-2xl glass-panel hover:bg-amber-500/20 border-amber-400/40 text-amber-300 font-display font-bold text-base transition">
+            🥇 Vai al Podio Finale
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- 3. PULSANTIERA SQUADRA (SMARTPHONE)                       -->
+  <!-- ========================================================= -->
+  <section id="screen-team" class="hidden min-h-screen flex flex-col justify-between p-4 max-w-md mx-auto">
+    <header class="flex items-center justify-between py-2 border-b border-slate-800">
+      <button id="team-btn-home" class="text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg glass-panel">
+        ← Esci
+      </button>
+      <div class="flex items-center gap-2 text-xs">
+        <span id="team-conn-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="team-conn-text" class="text-slate-300 font-medium">Non connesso</span>
+      </div>
+    </header>
+
+    <!-- Step 1: Login Squadra -->
+    <div id="team-login-box" class="my-auto glass-panel rounded-3xl p-6 space-y-5 pop-in">
+      <div class="text-center space-y-1">
+        <span class="text-3xl">📱</span>
+        <h2 class="font-display text-2xl font-black text-white">Entra in Partita</h2>
+        <p class="text-xs text-slate-400">Inserisci il codice mostrato sulla TV</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">Codice Stanza (4 caratteri)</label>
+          <input id="input-team-room" type="text" maxlength="4" placeholder="ES. ABCD" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border border-slate-700 text-center font-mono text-2xl font-black uppercase tracking-widest text-amber-300 focus:outline-none focus:border-sky-400" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">Nome della Squadra</label>
+          <input id="input-team-name" type="text" maxlength="18" placeholder="Es. I Quizzettari" class="w-full px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-white font-semibold focus:outline-none focus:border-sky-400" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">Scegli Emoji</label>
+          <div id="team-emoji-picker" class="grid grid-cols-6 gap-2"></div>
+        </div>
+
+        <button id="btn-team-join" class="w-full py-4 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-sky-500 text-white font-display font-black text-lg shadow-lg active:scale-95 transition">
+          🚀 ENTRA NELLA STANZA
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Pulsantiera Attiva -->
+    <div id="team-pad-box" class="hidden flex-1 flex flex-col justify-between py-4 space-y-4">
+      <!-- Info Squadra & Pierini -->
+      <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span id="team-hud-emoji" class="text-3xl">🦁</span>
+          <div>
+            <div id="team-hud-name" class="font-display font-bold text-white text-base">Squadra</div>
+            <div id="team-hud-rank" class="text-xs text-slate-400">In attesa...</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div id="team-hud-score" class="font-mono font-black text-xl text-amber-300">0 🪙</div>
+          <div class="text-[10px] uppercase tracking-wider text-slate-400">Pierini</div>
+        </div>
+      </div>
+
+      <!-- Stato / Domanda -->
+      <div id="team-status-card" class="glass-panel rounded-3xl p-6 text-center space-y-2">
+        <p id="team-status-title" class="font-display text-xl font-extrabold text-white">Guarda la TV!</p>
+        <p id="team-status-sub" class="text-xs text-slate-400">Appena parte la domanda si accenderanno i 4 pulsanti.</p>
+      </div>
+
+      <!-- 4 Pulsanti A B C D -->
+      <div id="team-buttons-grid" class="grid grid-cols-1 gap-3 flex-1">
+        <button data-idx="0" class="team-ans-btn buzzer-btn rounded-2xl bg-rose-600/90 border-2 border-rose-400/50 p-4 flex items-center gap-4 text-left shadow-lg disabled:opacity-40">
+          <span class="w-11 h-11 rounded-xl bg-black/30 flex items-center justify-center font-display font-black text-2xl text-white shrink-0">A</span>
+          <span class="ans-label font-bold text-white text-base leading-snug">Opzione A</span>
+        </button>
+        <button data-idx="1" class="team-ans-btn buzzer-btn rounded-2xl bg-sky-600/90 border-2 border-sky-400/50 p-4 flex items-center gap-4 text-left shadow-lg disabled:opacity-40">
+          <span class="w-11 h-11 rounded-xl bg-black/30 flex items-center justify-center font-display font-black text-2xl text-white shrink-0">B</span>
+          <span class="ans-label font-bold text-white text-base leading-snug">Opzione B</span>
+        </button>
+        <button data-idx="2" class="team-ans-btn buzzer-btn rounded-2xl bg-amber-500/90 border-2 border-amber-300/60 p-4 flex items-center gap-4 text-left shadow-lg disabled:opacity-40">
+          <span class="w-11 h-11 rounded-xl bg-black/30 flex items-center justify-center font-display font-black text-2xl text-slate-950 shrink-0">C</span>
+          <span class="ans-label font-bold text-slate-950 text-base leading-snug">Opzione C</span>
+        </button>
+        <button data-idx="3" class="team-ans-btn buzzer-btn rounded-2xl bg-emerald-600/90 border-2 border-emerald-400/50 p-4 flex items-center gap-4 text-left shadow-lg disabled:opacity-40">
+          <span class="w-11 h-11 rounded-xl bg-black/30 flex items-center justify-center font-display font-black text-2xl text-white shrink-0">D</span>
+          <span class="ans-label font-bold text-white text-base leading-snug">Opzione D</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- 4. REGIA REMOTA (TELECOMANDO PRESENTATORE)                -->
+  <!-- ========================================================= -->
+  <section id="screen-remote" class="hidden min-h-screen flex flex-col justify-between p-4 max-w-lg mx-auto space-y-4">
+    <header class="flex items-center justify-between py-2 border-b border-slate-800">
+      <button id="remote-btn-home" class="text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg glass-panel">
+        ← Home
+      </button>
+      <div class="flex items-center gap-2 text-xs">
+        <span id="remote-conn-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="remote-conn-text" class="text-slate-300 font-medium">Disconnesso</span>
+      </div>
+    </header>
+
+    <!-- Login Regia -->
+    <div id="remote-login-box" class="my-auto glass-panel rounded-3xl p-6 space-y-5">
+      <div class="text-center space-y-1">
+        <span class="text-3xl">🎙️</span>
+        <h2 class="font-display text-2xl font-black text-white">Regia Presentatore</h2>
+        <p class="text-xs text-slate-400">Collega il tuo telefono allo Schermo TV</p>
+      </div>
+      <input id="input-remote-room" type="text" maxlength="4" placeholder="CODICE TV" class="w-full px-4 py-3.5 rounded-2xl bg-slate-900 border border-slate-700 text-center font-mono text-2xl font-black uppercase tracking-widest text-amber-300 focus:outline-none focus:border-amber-400" />
+      <button id="btn-remote-connect" class="w-full py-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-display font-black text-lg shadow-lg transition">
+        Collega Telecomando
+      </button>
+    </div>
+
+    <!-- Pannello Controllo Regia -->
+    <div id="remote-panel-box" class="hidden flex-1 flex flex-col justify-between space-y-4">
+      <!-- Info Domanda & Risposta Esatta in Anticipo -->
+      <div class="glass-panel rounded-3xl p-5 space-y-3">
+        <div class="flex items-center justify-between text-xs">
+          <span id="remote-phase-badge" class="px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold">LOBBY</span>
+          <span id="remote-answers-badge" class="text-slate-300 font-semibold">Risposte: 0/0</span>
+        </div>
+        <p id="remote-q-text" class="font-bold text-white text-base leading-snug">In attesa avvio partita...</p>
+        <div id="remote-secret-answer" class="hidden p-3 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-sm font-bold">
+          ✅ Risposta esatta: ...
+        </div>
+
+        <!-- Controlli Audio Brano dalla Regia -->
+        <div id="remote-audio-controls" class="hidden pt-2 flex gap-2">
+          <button id="remote-btn-audio-toggle" class="flex-1 py-2.5 rounded-xl bg-fuchsia-500/25 border border-fuchsia-400/40 text-xs font-bold text-white">
+            ⏯️ Play/Pausa Musica TV
+          </button>
+          <button id="remote-btn-audio-restart" class="px-3.5 py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-200">
+            🔄 Riavvia
+          </button>
+        </div>
+      </div>
+
+      <!-- Comandi Principali -->
+      <div class="grid grid-cols-2 gap-3">
+        <button id="remote-btn-start" class="col-span-2 py-4 rounded-2xl bg-emerald-500 text-slate-950 font-display font-black text-base shadow-lg">
+          🚀 Avvia / Prossima Domanda
+        </button>
+        <button id="remote-btn-reveal" class="py-3.5 rounded-2xl bg-amber-400 text-slate-950 font-display font-black text-sm">
+          👁️ Svela Risposta
+        </button>
+        <button id="remote-btn-leaderboard" class="py-3.5 rounded-2xl bg-sky-500 text-slate-950 font-display font-black text-sm">
+          📊 Classifica
+        </button>
+        <button id="remote-btn-dj-flash" class="col-span-2 py-3 rounded-2xl bg-fuchsia-500/25 border border-fuchsia-400/40 text-fuchsia-200 font-bold text-sm">
+          🎙️ Lancia Flash DJ Random (Marco &amp; Giulia)
+        </button>
+        <button id="remote-btn-welcome-intro" class="col-span-2 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-fuchsia-200 font-bold text-xs">
+          🎬 Sigla di Benvenuto &amp; Regole (Lobby)
+        </button>
+        <button id="remote-btn-double" class="py-3 rounded-2xl glass-panel text-amber-300 font-bold text-xs">
+          🔥 Pierini x2
+        </button>
+        <button id="remote-btn-suspense" class="py-3 rounded-2xl glass-panel text-purple-300 font-bold text-xs">
+          🎭 Suspense
+        </button>
+      </div>
+
+      <!-- Timer Rapido Regia -->
+      <div class="glass-panel rounded-2xl p-3 flex items-center justify-between">
+        <span class="text-xs font-semibold text-slate-400">⏱️ Timer:</span>
+        <div class="flex gap-1.5">
+          <button data-sec="10" class="remote-timer-btn px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-bold text-slate-200">10s</button>
+          <button data-sec="12" class="remote-timer-btn px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-bold text-slate-200">12s</button>
+          <button data-sec="15" class="remote-timer-btn px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-bold text-slate-200">15s</button>
+          <button data-sec="20" class="remote-timer-btn px-2.5 py-1 rounded-lg bg-slate-800 text-xs font-bold text-slate-200">20s</button>
+        </div>
+      </div>
+
+      <!-- Mini Classifica Regia -->
+      <div class="glass-panel rounded-2xl p-4 space-y-2">
+        <div class="text-xs font-bold uppercase text-slate-400">Squadre in Gara</div>
+        <div id="remote-teams-list" class="space-y-1.5 max-h-40 overflow-y-auto text-xs"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- 5. MODALE IMPOSTAZIONI VOCE STUDIO AI (MARCO & GIULIA)    -->
+  <!-- ========================================================= -->
+  <div id="modal-dj-settings" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl max-w-md w-full p-6 space-y-5 border-fuchsia-400/40 shadow-2xl pop-in">
+      <div class="flex items-center justify-between">
+        <h3 class="font-display text-xl font-black text-white">🎙️ Regia Radio Marco &amp; Giulia</h3>
+        <button id="btn-close-dj-settings" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Inserisci la tua <strong>Gemini API Key</strong> gratuita (da <em>aistudio.google.com</em>) per attivare le voci umane naturali di Marco &amp; Giulia anche su Netlify. Resta salvata solo nel tuo browser.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Gemini API Key</label>
+          <input id="input-dj-apikey" type="password" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white font-mono focus:outline-none focus:border-fuchsia-400" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-400 mb-1">🎵 Base Musicale Radio (Ducking)</label>
+          <select id="select-dj-bed" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-fuchsia-400">
+            <option value="random">🎲 Mix Casuale (5 Hit da Festa)</option>
+            <option value="0">🎉 Black Eyed Peas — I Gotta Feeling</option>
+            <option value="1">🕺 Daft Punk — Get Lucky</option>
+            <option value="2">🔥 Mark Ronson &amp; Bruno Mars — Uptown Funk</option>
+            <option value="3">👑 Queen — Don't Stop Me Now</option>
+            <option value="4">🪩 Earth, Wind &amp; Fire — September</option>
+            <option value="none">🔇 Nessuna base musicale</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2 pt-1">
+        <button id="btn-test-dj-voice" class="flex-1 py-3 rounded-xl bg-fuchsia-500/25 hover:bg-fuchsia-500/40 border border-fuchsia-400/40 text-xs font-bold text-white transition">
+          🎧 Prova Marco &amp; Giulia
+        </button>
+        <button id="btn-save-dj-apikey" class="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition">
+          💾 Salva Impostazioni
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 6. MODALE GESTIONE DOMANDE & JSON                         -->
+  <!-- ========================================================= -->
+  <div id="modal-deck" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl max-w-2xl w-full p-6 space-y-5 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between">
+        <h3 class="font-display text-xl font-black text-white">📚 Archivio Domande (<span id="modal-deck-total">80</span>)</h3>
+        <button id="btn-close-deck" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">✕</button>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button id="btn-download-sample-json" class="px-3.5 py-2 rounded-xl bg-sky-500/20 border border-sky-400/40 text-xs font-bold text-sky-300 hover:bg-sky-500/30">
+          ⬇️ Scarica Modello JSON
+        </button>
+        <button id="btn-reset-default-deck" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">
+          ♻️ Ripristina 80 Domande Originali
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-slate-400 uppercase">Importa Domande Personalizzate (incolla array JSON)</label>
+        <textarea id="textarea-import-json" rows="4" placeholder='[{"category":"Cultura","question":"...","options":["A","B","C","D"],"correct":0}]' class="w-full p-3 rounded-2xl bg-slate-900 border border-slate-700 text-xs font-mono text-slate-200 focus:outline-none focus:border-sky-400"></textarea>
+        <button id="btn-import-json" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs">
+          📥 Carica nel Mazzo
+        </button>
+      </div>
+
+      <div id="modal-deck-list" class="flex-1 overflow-y-auto space-y-2 pr-1 border-t border-slate-800 pt-3 text-xs"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- JAVASCRIPT APPLICAZIONE COMPLETA                          -->
+  <!-- ========================================================= -->
+  <script>
+    // =========================================================================
+    // 1. ARCHIVIO 80 DOMANDE CALIBRATE (40-50 ANNI • 9 CATEGORIE)
+    // =========================================================================
+    const DEFAULT_QUESTIONS = [
+      // --- STORIA & GEOGRAFIA (10) ---
+      { category: "Storia & Geografia", question: "Quale di queste capitali europee NON è attraversata dal fiume Danubio?", options: ["Vienna", "Budapest", "Praga", "Belgrado"], correct: 2 },
+      { category: "Storia & Geografia", question: "In che anno le banconote e le monete in Euro entrarono ufficialmente in circolazione?", options: ["1999", "2000", "2002", "2004"], correct: 2 },
+      { category: "Storia & Geografia", question: "Con quale nome i Fenici chiamavano l'antica città di Palermo?", options: ["Ziz", "Motya", "Panormos", "Solunto"], correct: 0 },
+      { category: "Storia & Geografia", question: "In quale località siciliana fu firmato l'armistizio corto dell'8 settembre 1943?", options: ["Siracusa (Cassibile)", "Marsala", "Gela", "Augusta"], correct: 0 },
+      { category: "Storia & Geografia", question: "Chi era il terzo astronauta della missione Apollo 11 rimasto in orbita lunare sul modulo Columbia?", options: ["Michael Collins", "Jim Lovell", "Alan Shepard", "Pete Conrad"], correct: 0 },
+      { category: "Storia & Geografia", question: "Qual è l'unica capitale al mondo ancora divisa da un muro/zona cuscinetto controllata dall'ONU?", options: ["Nicosia", "Belfast", "Sarajevo", "Gerusalemme"], correct: 0 },
+      { category: "Storia & Geografia", question: "In quale città olandese fu firmato nel 1992 il trattato istitutivo dell'Unione Europea?", options: ["Maastricht", "Utrecht", "L'Aia", "Rotterdam"], correct: 0 },
+      { category: "Storia & Geografia", question: "Quale stretto separa l'isola di Sumatra dalla penisola malese?", options: ["Stretto di Malacca", "Stretto della Sonda", "Stretto di Hormuz", "Stretto di Bering"], correct: 0 },
+      { category: "Storia & Geografia", question: "In che anno iniziò l'inchiesta giudiziaria 'Mani Pulite' con l'arresto di Mario Chiesa?", options: ["1990", "1992", "1994", "1989"], correct: 1 },
+      { category: "Storia & Geografia", question: "Quale stato degli USA è soprannominato 'The Sunshine State'?", options: ["California", "Florida", "Texas", "Hawaii"], correct: 1 },
+
+      // --- LETTERATURA & ARTE (8) ---
+      { category: "Letteratura & Arte", question: "Chi curò la pubblicazione postuma de 'Il Gattopardo' di Giuseppe Tomasi di Lampedusa nel 1958?", options: ["Giorgio Bassani", "Italo Calvino", "Leonardo Sciascia", "Elio Vittorini"], correct: 0 },
+      { category: "Letteratura & Arte", question: "Quale celebre dipinto di Caravaggio fu trafugato dall'Oratorio di San Lorenzo a Palermo nel 1969?", options: ["Natività con i santi Lorenzo e Francesco", "La Vocazione di San Matteo", "Giuditta e Oloferne", "Il Seppellimento di Santa Lucia"], correct: 0 },
+      { category: "Letteratura & Arte", question: "Come si chiama il protagonista de 'Il barone rampante' di Italo Calvino?", options: ["Cosimo Piovasco di Rondò", "Medardo di Terralba", "Agilulfo Emo Bertrandino", "Marcovaldo"], correct: 0 },
+      { category: "Letteratura & Arte", question: "Qual è il vero nome della Monaca di Monza ne 'I Promessi Sposi'?", options: ["Gertrude", "Lucia", "Agnese", "Perpetua"], correct: 0 },
+      { category: "Letteratura & Arte", question: "Quale artista surrealista dipinse gli orologi molli ne 'La persistenza della memoria'?", options: ["Salvador Dalí", "René Magritte", "Max Ernst", "Joan Miró"], correct: 0 },
+      { category: "Letteratura & Arte", question: "In quale museo parigino è esposta la Venere di Milo?", options: ["Museo del Louvre", "Musée d'Orsay", "Centre Pompidou", "Museo Rodin"], correct: 0 },
+      { category: "Letteratura & Arte", question: "Chi è l'autore de 'Il Piccolo Principe'?", options: ["Antoine de Saint-Exupéry", "Jules Verne", "Albert Camus", "Daniel Pennac"], correct: 0 },
+      { category: "Letteratura & Arte", question: "Quale scrittore ha creato la saga letteraria da cui è tratta 'Il Trono di Spade'?", options: ["George R.R. Martin", "J.R.R. Tolkien", "Terry Pratchett", "Andrzej Sapkowski"], correct: 0 },
+
+      // --- SPORT (8) ---
+      { category: "Sport", question: "Con quale scuderia Michael Schumacher vinse i suoi primi due titoli mondiali di Formula 1 nel 1994 e 1995?", options: ["Benetton", "Ferrari", "Jordan", "Williams"], correct: 0 },
+      { category: "Sport", question: "In che anno Marco Pantani realizzò la storica doppietta Giro d'Italia e Tour de France?", options: ["1996", "1998", "2000", "1997"], correct: 1 },
+      { category: "Sport", question: "Quanti titoli mondiali complessivi ha conquistato Valentino Rossi in carriera?", options: ["7", "8", "9", "10"], correct: 2 },
+      { category: "Sport", question: "Contro quale nazionale Totò Schillaci segnò il suo primo gol ai Mondiali di Italia '90?", options: ["Austria", "Stati Uniti", "Cecoslovacchia", "Uruguay"], correct: 0 },
+      { category: "Sport", question: "Chi calciò il quinto e decisivo rigore dell'Italia nella finale Mondiale di Berlino 2006?", options: ["Fabio Grosso", "Alessandro Del Piero", "Andrea Pirlo", "Francesco Totti"], correct: 0 },
+      { category: "Sport", question: "Quale città ospitò le Olimpiadi estive del 1992 con il celebre 'Dream Team' USA di basket?", options: ["Barcellona", "Atlanta", "Seul", "Sydney"], correct: 0 },
+      { category: "Sport", question: "Quale torneo del Grande Slam Jannik Sinner ha vinto per primo nel gennaio 2024?", options: ["Australian Open", "US Open", "Roland Garros", "Wimbledon"], correct: 0 },
+      { category: "Sport", question: "Quale soprannome accompagnava lo sciatore Alberto Tomba negli anni '80 e '90?", options: ["Tomba la Bomba", "Il Pirata", "Il Cannibale", "L'Albatros"], correct: 0 },
+
+      // --- SCIENZA & ATTUALITÀ (8) ---
+      { category: "Scienza & Attualità", question: "Qual è il pianeta più caldo del Sistema Solare a causa del suo denso effetto serra?", options: ["Venere", "Mercurio", "Marte", "Giove"], correct: 0 },
+      { category: "Scienza & Attualità", question: "Quale elemento chimico è indicato con il simbolo 'W' nella tavola periodica?", options: ["Tungsteno", "Vanadio", "Wolframio", "Ittrio"], correct: 0 },
+      { category: "Scienza & Attualità", question: "Come si chiama il potente telescopio spaziale lanciato a dicembre 2021 erede di Hubble?", options: ["James Webb", "Kepler", "Spitzer", "Euclid"], correct: 0 },
+      { category: "Scienza & Attualità", question: "Nell'intelligenza artificiale moderna, cosa significa l'acronimo 'LLM'?", options: ["Large Language Model", "Logic Learning Machine", "Linear Layer Matrix", "Live Link Module"], correct: 0 },
+      { category: "Scienza & Attualità", question: "Chi fu la prima persona a vincere due Premi Nobel in due discipline scientifiche diverse?", options: ["Marie Curie", "Albert Einstein", "Linus Pauling", "Enrico Fermi"], correct: 0 },
+      { category: "Scienza & Attualità", question: "In che anno Nintendo lanciò in Giappone la prima console portatile Game Boy?", options: ["1989", "1985", "1992", "1995"], correct: 0 },
+      { category: "Scienza & Attualità", question: "Qual è l'organo interno più grande del corpo umano?", options: ["Fegato", "Polmone destro", "Stomaco", "Milza"], correct: 0 },
+      { category: "Scienza & Attualità", question: "In quale città si tenne nel 2015 la conferenza COP21 che portò allo storico accordo sul clima?", options: ["Parigi", "Kyoto", "Glasgow", "Copenaghen"], correct: 0 },
+
+      // --- HOBBY & CURIOSITÀ (8) ---
+      { category: "Hobby & Curiosità", question: "Qual è il vitigno a bacca nera da cui si produce esclusivamente il vino Barolo?", options: ["Nebbiolo", "Sangiovese", "Barbera", "Nero d'Avola"], correct: 0 },
+      { category: "Hobby & Curiosità", question: "Nel gioco da tavolo Risiko!, quale continente garantisce ben 7 armate bonus se conquistato per intero?", options: ["Asia", "Europa", "Nord America", "Africa"], correct: 0 },
+      { category: "Hobby & Curiosità", question: "In fotografia, cosa controlla il valore ISO?", options: ["La sensibilità del sensore alla luce", "L'apertura del diaframma", "La lunghezza focale", "La velocità dell'otturatore"], correct: 0 },
+      { category: "Hobby & Curiosità", question: "Quali sono i tre ingredienti alcolici del cocktail Negroni classico?", options: ["Gin, Vermouth rosso, Campari", "Vodka, Vermouth dry, Aperol", "Gin, Tonic, Lime", "Rum, Vermouth bianco, Bitter"], correct: 0 },
+      { category: "Hobby & Curiosità", question: "Nel Monopoli classico italiano, qual è il terreno più costoso del tabellone?", options: ["Parco della Vittoria", "Viale dei Giardini", "Largo Augusto", "Corso Raffaello"], correct: 0 },
+      { category: "Hobby & Curiosità", question: "Da quale parte del fiore di Crocus sativus si ricava la spezia dello zafferano?", options: ["Gli stimmi", "I petali", "Le radici", "I semi"], correct: 0 },
+      { category: "Hobby & Curiosità", question: "Come si chiama l'antica arte giapponese di riparare le ceramiche rotte con lacca e polvere d'oro?", options: ["Kintsugi", "Origami", "Ikebana", "Bonsai"], correct: 0 },
+      { category: "Hobby & Curiosità", question: "Quale formaggio è l'ingrediente base indispensabile della crema del vero cannolo siciliano?", options: ["Ricotta di pecora", "Mascarpone", "Ricotta vaccina", "Robiola"], correct: 0 },
+
+      // --- CANZONI (14: 7 Audio + 7 Testi) ---
+      { category: "Canzoni", subtype: "audio", question: "Indovina il titolo di questo celebre brano synth-pop del 1990:", searchTerm: "Depeche Mode Enjoy the Silence", artist: "Depeche Mode", songTitle: "Enjoy the Silence", options: ["Enjoy the Silence", "Personal Jesus", "Just Can't Get Enough", "Policy of Truth"], correct: 0 },
+      { category: "Canzoni", subtype: "audio", question: "Qual è il titolo di questo inno anni '80 dei Tears for Fears?", searchTerm: "Tears for Fears Everybody Wants to Rule the World", artist: "Tears for Fears", songTitle: "Everybody Wants to Rule the World", options: ["Everybody Wants to Rule the World", "Shout", "Mad World", "Head Over Heels"], correct: 0 },
+      { category: "Canzoni", subtype: "audio", question: "Riconosci subito questo classico di Vasco Rossi del 1983:", searchTerm: "Vasco Rossi Vita spericolata", artist: "Vasco Rossi", songTitle: "Vita spericolata", options: ["Vita spericolata", "Albachiara", "Siamo solo noi", "Sally"], correct: 0 },
+      { category: "Canzoni", subtype: "audio", question: "Qual è il titolo di questa hit britpop degli Oasis del 1995?", searchTerm: "Oasis Wonderwall", artist: "Oasis", songTitle: "Wonderwall", options: ["Wonderwall", "Don't Look Back in Anger", "Champagne Supernova", "Supersonic"], correct: 0 },
+      { category: "Canzoni", subtype: "audio", question: "Indovina il titolo di questo capolavoro dei R.E.M. del 1991:", searchTerm: "R.E.M. Losing My Religion", artist: "R.E.M.", songTitle: "Losing My Religion", options: ["Losing My Religion", "Everybody Hurts", "Man on the Moon", "Shiny Happy People"], correct: 0 },
+      { category: "Canzoni", subtype: "audio", question: "Riconosci questo brano immortale di Franco Battiato:", searchTerm: "Franco Battiato La cura", artist: "Franco Battiato", songTitle: "La cura", options: ["La cura", "Centro di gravità permanente", "Voglio vederti danzare", "Cuccurucucù"], correct: 0 },
+      { category: "Canzoni", subtype: "audio", question: "Qual è il titolo di questo gioiello di Pino Daniele?", searchTerm: "Pino Daniele Napule è", artist: "Pino Daniele", songTitle: "Napule è", options: ["Napule è", "Je so' pazzo", "Quanno chiove", "Quando"], correct: 0 },
+      { category: "Canzoni", subtype: "lyrics", question: "Completa la parola mancante nel testo di Fabrizio De André:", lyrics: "Dai diamanti non nasce niente, dal _____ nascono i fior", artist: "Fabrizio De André — Via del Campo", missingWord: "letame", options: ["letame", "fango", "dolore", "silenzio"], correct: 0 },
+      { category: "Canzoni", subtype: "lyrics", question: "Quale parola manca in questo ritornello degli 883?", lyrics: "Hanno ucciso l'Uomo Ragno, chi sia stato non si sa, forse quelli della _____", artist: "883 — Hanno ucciso l'Uomo Ragno", missingWord: "mala", options: ["mala", "strada", "notte", "scuola"], correct: 0 },
+      { category: "Canzoni", subtype: "lyrics", question: "Completa la celebre frase di Luciano Ligabue:", lyrics: "Una vita da mediano, a recuperar _____", artist: "Ligabue — Una vita da mediano", missingWord: "palloni", options: ["palloni", "secondi", "respiri", "sorrisi"], correct: 0 },
+      { category: "Canzoni", subtype: "lyrics", question: "Quale parola completa 'Sally' di Vasco Rossi?", lyrics: "Sally cammina per la strada senza nemmeno _____", artist: "Vasco Rossi — Sally", missingWord: "guardare", options: ["guardare", "pensare", "parlare", "tremare"], correct: 0 },
+      { category: "Canzoni", subtype: "lyrics", question: "Completa il verso di 'Centro di gravità permanente':", lyrics: "Cerco un centro di gravità permanente che non mi faccia mai cambiare _____ sulle cose sulla gente", artist: "Franco Battiato", missingWord: "idea", options: ["idea", "strada", "voce", "rotta"], correct: 0 },
+      { category: "Canzoni", subtype: "lyrics", question: "Quale parola manca in 'Questo piccolo grande amore' di Claudio Baglioni?", lyrics: "Quella sua maglietta _____ tanto stretta al punto che m'immaginavo tutto", artist: "Claudio Baglioni", missingWord: "fina", options: ["fina", "bianca", "corta", "leggera"], correct: 0 },
+      { category: "Canzoni", subtype: "lyrics", question: "Completa il celebre brano di Lucio Battisti:", lyrics: "Lo scopriremo solo _____", artist: "Lucio Battisti — Con il nastro rosa", missingWord: "vivendo", options: ["vivendo", "amando", "correndo", "ridendo"], correct: 0 },
+
+      // --- FILM (8) ---
+      { category: "Film", subtype: "quote", question: "In quale film cult il replicante Roy Batty pronuncia questo monologo finale?", quote: "Ho visto cose che voi umani non potreste immaginare...", hint: "Regia di Ridley Scott (1982)", options: ["Blade Runner", "Alien", "Atto di forza", "2001: Odissea nello spazio"], correct: 0 },
+      { category: "Film", subtype: "quote", question: "Da quale film del 1994 con Brandon Lee è tratta questa frase?", quote: "Non può piovere per sempre.", hint: "Tratto dal fumetto di James O'Barr", options: ["Il Corvo", "Matrix", "Dark City", "Intervista col vampiro"], correct: 0 },
+      { category: "Film", question: "In 'Matrix' (1999), quale pillola offre Morpheus a Neo per scoprire la verità?", options: ["La pillola rossa", "La pillola blu", "La pillola verde", "La pillola bianca"], correct: 0 },
+      { category: "Film", question: "In 'Ritorno al Futuro', a quale velocità esatta deve arrivare la DeLorean per viaggiare nel tempo?", options: ["88 miglia orarie", "99 miglia orarie", "77 miglia orarie", "100 miglia orarie"], correct: 0 },
+      { category: "Film", question: "Cosa c'è dentro la misteriosa valigetta luminosa di Marsellus Wallace in 'Pulp Fiction'?", options: ["Non viene mai svelato nel film", "Lingotti d'oro", "Diamanti rubati", "L'anima di Marsellus"], correct: 0 },
+      { category: "Film", question: "Quale film di Giuseppe Tornatore vinse l'Oscar come Miglior Film Straniero nel 1990?", options: ["Nuovo Cinema Paradiso", "Malèna", "La leggenda del pianista sull'oceano", "Baarìa"], correct: 0 },
+      { category: "Film", subtype: "audio", question: "Ascolta la musica: a quale capolavoro appartiene questa colonna sonora di Ennio Morricone?", searchTerm: "Ennio Morricone The Ecstasy of Gold", artist: "Ennio Morricone", songTitle: "Il buono, il brutto, il cattivo", options: ["Il buono, il brutto, il cattivo", "C'era una volta in America", "Per un pugno di dollari", "Mission"], correct: 0 },
+      { category: "Film", subtype: "audio", question: "Indovina il film anni '80 da questo inconfondibile tema musicale:", searchTerm: "Ray Parker Jr Ghostbusters", artist: "Ray Parker Jr.", songTitle: "Ghostbusters — Acchiappafantasmi", options: ["Ghostbusters — Acchiappafantasmi", "Ritorno al Futuro", "Beverly Hills Cop", "I Goonies"], correct: 0 },
+
+      // --- SERIE TV (8) ---
+      { category: "Serie TV", question: "Nella serie cult 'Twin Peaks', chi viene trovata avvolta nella plastica all'inizio del primo episodio?", options: ["Laura Palmer", "Donna Hayward", "Audrey Horne", "Shelly Johnson"], correct: 0 },
+      { category: "Serie TV", subtype: "audio", question: "Riconosci questa ipnotica sigla composta da Angelo Badalamenti:", searchTerm: "Angelo Badalamenti Twin Peaks Theme", artist: "Angelo Badalamenti", songTitle: "Twin Peaks", options: ["Twin Peaks", "X-Files", "Stranger Things", "True Detective"], correct: 0 },
+      { category: "Serie TV", subtype: "quote", question: "Quale personaggio della serie italiana 'Boris' ripete ossessivamente questo mantra sul set?", quote: "Dai, dai, dai!", hint: "Interpretato da Francesco Pannofino", options: ["René Ferretti", "Stanis La Rochelle", "Biascica", "Duccio Patanè"], correct: 0 },
+      { category: "Serie TV", question: "Qual era il numero del volo Oceanic precipitato sull'isola nella serie 'Lost'?", options: ["Volo 815", "Volo 416", "Volo 747", "Volo 108"], correct: 0 },
+      { category: "Serie TV", question: "Come si chiama la storica fidanzata genovese del Commissario Montalbano?", options: ["Livia Burlando", "Ingrid Sjostrom", "Adelina Cirrinciò", "Catarella"], correct: 0 },
+      { category: "Serie TV", subtype: "quote", question: "Quale celeberrimo motto appariva nei titoli di testa di quasi ogni episodio di 'X-Files'?", quote: "La verità è là fuori (The Truth Is Out There)", hint: "Fox Mulder & Dana Scully", options: ["X-Files", "Fringe", "Ai confini della realtà", "Lost"], correct: 0 },
+      { category: "Serie TV", question: "Quale pseudonimo usa il professore di chimica Walter White in 'Breaking Bad'?", options: ["Heisenberg", "Oppenheimer", "Schrödinger", "Feynman"], correct: 0 },
+      { category: "Serie TV", question: "Qual è il motto ufficiale della Casa Stark ne 'Il Trono di Spade'?", options: ["L'inverno sta arrivando", "Un Lannister paga sempre i suoi debiti", "Fuoco e Sangue", "Noi non seminiamo"], correct: 0 },
+
+      // --- CARTONI ANIMATI (8) ---
+      { category: "Cartoni Animati", question: "Come si chiama la leggendaria spada indistruttibile di Goemon Ishikawa in 'Lupin III'?", options: ["Zantetsuken", "Excalibur", "Muramasa", "Masamune"], correct: 0 },
+      { category: "Cartoni Animati", question: "Chi è l'amico d'infanzia e fedele attendente segretamente innamorato di Lady Oscar?", options: ["André Grandier", "Hans Axel von Fersen", "Alain de Soissons", "Girodelle"], correct: 0 },
+      { category: "Cartoni Animati", question: "Quali sono i nomi delle tre sorelle ladre protagoniste di 'Occhi di Gatto'?", options: ["Kelly, Sheila e Tati", "Sam, Clover e Alex", "Mila, Kaori e Nami", "Creamy, Evelyn e Magica Emi"], correct: 0 },
+      { category: "Cartoni Animati", question: "Quale Cavaliere dello Zodiaco inverte il flusso della cascata di Rozan con il 'Colpo Segreto del Drago Nascente'?", options: ["Sirio il Dragone", "Pegasus", "Crystal il Cigno", "Phoenix"], correct: 0 },
+      { category: "Cartoni Animati", question: "Quale arma iconica lancia Goldrake gridando 'Alabarda...'?", options: ["Alabarda Spaziale", "Lama Rotante", "Tuono Spaziale", "Maglio Perforante"], correct: 0 },
+      { category: "Cartoni Animati", question: "Come si chiama il barista burbero de 'I Simpson' continuamente preso in giro al telefono da Bart?", options: ["Boe Szyslak (Moe)", "Barney Gumble", "Lenny Leonard", "Carl Carlson"], correct: 0 },
+      { category: "Cartoni Animati", subtype: "audio", question: "Indovina il classico Disney da questa canzone scritta da Elton John:", searchTerm: "Il cerchio della vita Il Re Leone", artist: "Disney — Il Re Leone", songTitle: "Il cerchio della vita", options: ["Il cerchio della vita", "Hakuna Matata", "In fondo al mar", "Un mondo nuovo"], correct: 0 },
+      { category: "Cartoni Animati", subtype: "audio", question: "Quale film d'animazione Disney ha come colonna sonora questo brano di Phil Collins?", searchTerm: "Phil Collins Sei dentro me Tarzan", artist: "Phil Collins — Tarzan", songTitle: "Tarzan (Sei dentro me)", options: ["Tarzan", "Koda fratello orso", "Hercules", "Il pianeta del tesoro"], correct: 0 }
+    ];
+
+    const TEAM_EMOJIS = ["🦁", "🐯", "🦊", "🐺", "🦅", "🦈", "🐙", "🐉", "🚀", "⚡", "🔥", "🍕"];
+
+    const RADIO_BEDS = [
+      { label: "Black Eyed Peas — I Gotta Feeling", term: "Black Eyed Peas I Gotta Feeling" },
+      { label: "Daft Punk — Get Lucky", term: "Daft Punk Get Lucky" },
+      { label: "Mark Ronson & Bruno Mars — Uptown Funk", term: "Mark Ronson Uptown Funk" },
+      { label: "Queen — Don't Stop Me Now", term: "Queen Don't Stop Me Now" },
+      { label: "Earth, Wind & Fire — September", term: "Earth Wind Fire September" }
+    ];
+
+    // =========================================================================
+    // 2. EFFETTI SONORI (WEB AUDIO API) & PLAYER MUSICALE ITUNES JSONP
+    // =========================================================================
+    class SoundEffects {
+      constructor() {
+        this.enabled = true;
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+      playTone(freq, duration = 0.12, type = "sine", vol = 0.14, delay = 0) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      }
+      tick(urgent = false) {
+        if (urgent) {
+          this.playTone(980, 0.07, "triangle", 0.16, 0);
+          this.playTone(1180, 0.07, "triangle", 0.14, 0.09);
+        } else {
+          this.playTone(660, 0.05, "sine", 0.07, 0);
+        }
+      }
+      gong() {
+        this.playTone(220, 0.7, "triangle", 0.22, 0);
+        this.playTone(165, 0.8, "sine", 0.2, 0.05);
+      }
+      reveal() {
+        this.playTone(523.25, 0.15, "triangle", 0.16, 0);
+        this.playTone(659.25, 0.15, "triangle", 0.16, 0.1);
+        this.playTone(783.99, 0.3, "triangle", 0.18, 0.2);
+      }
+      fanfare() {
+        const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+        const times = [0, 0.12, 0.24, 0.38, 0.56, 0.72];
+        notes.forEach((n, i) => this.playTone(n, i === notes.length - 1 ? 0.55 : 0.14, "triangle", 0.2, times[i]));
+      }
+      buzz() {
+        this.playTone(880, 0.1, "sine", 0.15, 0);
+      }
+    }
+
+    function searchItunesPreview(term) {
+      return new Promise((resolve) => {
+        const cbName = "itunes_cb_" + Math.random().toString(36).slice(2, 10);
+        const script = document.createElement("script");
+        const timeout = setTimeout(() => {
+          cleanup();
+          resolve(null);
+        }, 5500);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[cbName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[cbName] = (data) => {
+          cleanup();
+          const item = data?.results?.find((r) => r.previewUrl);
+          if (item) {
+            resolve({
+              previewUrl: item.previewUrl,
+              artwork: (item.artworkUrl100 || "").replace("100x100", "300x300"),
+              trackName: item.trackName,
+              artistName: item.artistName
+            });
+          } else {
+            resolve(null);
+          }
+        };
+
+        script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=3&callback=${cbName}`;
+        script.onerror = () => {
+          cleanup();
+          resolve(null);
+        };
+        document.body.appendChild(script);
+      });
+    }
+
+    class MusicAudioManager {
+      constructor() {
+        this.audio = new Audio();
+        this.audio.crossOrigin = "anonymous";
+        this.cache = new Map();
+        this.currentMeta = null;
+        this.isPlaying = false;
+      }
+
+      async loadAndPlay(searchTerm, onStatus) {
+        this.stop();
+        if (!searchTerm) return;
+        if (onStatus) onStatus("⏳ Caricamento estratto musicale...");
+        try {
+          let info = this.cache.get(searchTerm);
+          if (!info) {
+            info = await searchItunesPreview(searchTerm);
+            if (info) this.cache.set(searchTerm, info);
+          }
+          if (!info || !info.previewUrl) {
+            if (onStatus) onStatus("⚠️ Anteprima non disponibile, leggete la domanda!");
+            return;
+          }
+          this.currentMeta = info;
+          this.audio.src = info.previewUrl;
+          this.audio.volume = 0.85;
+          await this.audio.play();
+          this.isPlaying = true;
+          if (onStatus) onStatus("🎧 Ascolta attentamente l'estratto...");
+        } catch (e) {
+          this.isPlaying = false;
+          if (onStatus) onStatus("▶️ Premi Riascolta per avviare la musica");
+        }
+      }
+
+      toggle() {
+        if (!this.audio.src) return false;
+        if (this.audio.paused) {
+          this.audio.play().catch(() => {});
+          this.isPlaying = true;
+          return true;
+        } else {
+          this.audio.pause();
+          this.isPlaying = false;
+          return false;
+        }
+      }
+
+      restart() {
+        if (!this.audio.src) return;
+        this.audio.currentTime = 0;
+        this.audio.play().catch(() => {});
+        this.isPlaying = true;
+      }
+
+      stop() {
+        try {
+          this.audio.pause();
+          this.audio.currentTime = 0;
+        } catch (e) {}
+        this.isPlaying = false;
+      }
+    }
+
+    // =========================================================================
+    // 3. MOTORE DJ RADIOFONICO (MARCO & GIULIA + BASE MUSICALE CON DUCKING)
+    // =========================================================================
+    class DJVoiceEngine {
+      constructor() {
+        this.enabled = true;
+        this.lastDialogue = "";
+        this.lastAudioUrl = null;
+        this.voiceAudio = new Audio();
+        this.bedAudio = new Audio();
+        this.bedCache = new Map();
+        this.fadeTimer = null;
+        this.requestId = 0;
+      }
+
+      getSavedApiKey() {
+        try {
+          return (localStorage.getItem("quiz_gemini_api_key") || "").trim();
+        } catch (e) {
+          return "";
+        }
+      }
+
+      getBedChoice() {
+        try {
+          return localStorage.getItem("quiz_dj_bed_choice") || "random";
+        } catch (e) {
+          return "random";
+        }
+      }
+
+      refreshKeyIndicator() {
+        const hasKey = Boolean(this.getSavedApiKey());
+        const headerBtn = document.getElementById("tv-btn-dj-settings-header");
+        if (headerBtn) {
+          headerBtn.textContent = hasKey ? "⚙️ Voce AI ✓" : "⚙️ Voce Neural";
+        }
+        this.setStatus(
+          "Voci Neurali Marco & Giulia attive (illimitate) • Pronti in onda!",
+          false
+        );
+      }
+
+      setStatus(text, isLive = false) {
+        const el = document.getElementById("tv-dj-status-text");
+        if (el) {
+          el.textContent = text;
+          el.className = isLive
+            ? "text-xs text-emerald-300 font-bold mt-0.5"
+            : "text-xs text-fuchsia-200 mt-0.5";
+        }
+        const lobbyBar = document.getElementById("tv-lobby-dj-bar");
+        const lobbyStatus = document.getElementById("tv-lobby-dj-status");
+        if (lobbyBar && lobbyStatus) {
+          lobbyBar.classList.remove("hidden");
+          lobbyStatus.textContent = text;
+        }
+      }
+
+      async preloadRadioBed() {
+        const choice = this.getBedChoice();
+        if (choice === "none") return;
+        const idx = choice === "random" ? Math.floor(Math.random() * RADIO_BEDS.length) : Number(choice) || 0;
+        const bed = RADIO_BEDS[idx] || RADIO_BEDS[0];
+        if (!this.bedCache.has(bed.term)) {
+          const info = await searchItunesPreview(bed.term);
+          if (info?.previewUrl) this.bedCache.set(bed.term, info.previewUrl);
+        }
+      }
+
+      async startRadioBed() {
+        const choice = this.getBedChoice();
+        if (!this.enabled || choice === "none") return;
+        const idx = choice === "random" ? Math.floor(Math.random() * RADIO_BEDS.length) : Number(choice) || 0;
+        const bed = RADIO_BEDS[idx] || RADIO_BEDS[0];
+        let url = this.bedCache.get(bed.term);
+        if (!url) {
+          const info = await searchItunesPreview(bed.term);
+          if (info?.previewUrl) {
+            url = info.previewUrl;
+            this.bedCache.set(bed.term, url);
+          }
+        }
+        if (!url) return;
+        clearInterval(this.fadeTimer);
+        this.bedAudio.src = url;
+        this.bedAudio.loop = true;
+        this.bedAudio.volume = 0.45;
+        this.bedAudio.play().catch(() => {});
+      }
+
+      duckRadioBed(targetVol = 0.14) {
+        if (this.bedAudio.paused) return;
+        clearInterval(this.fadeTimer);
+        this.fadeTimer = setInterval(() => {
+          if (this.bedAudio.volume > targetVol + 0.03) {
+            this.bedAudio.volume = Math.max(targetVol, this.bedAudio.volume - 0.04);
+          } else {
+            this.bedAudio.volume = targetVol;
+            clearInterval(this.fadeTimer);
+          }
+        }, 70);
+      }
+
+      fadeOutRadioBed() {
+        clearInterval(this.fadeTimer);
+        this.fadeTimer = setInterval(() => {
+          if (this.bedAudio.volume > 0.04) {
+            this.bedAudio.volume = Math.max(0, this.bedAudio.volume - 0.05);
+          } else {
+            this.bedAudio.pause();
+            this.bedAudio.currentTime = 0;
+            clearInterval(this.fadeTimer);
+          }
+        }, 80);
+      }
+
+      stopAll() {
+        clearInterval(this.fadeTimer);
+        try {
+          this.voiceAudio.pause();
+          this.voiceAudio.currentTime = 0;
+        } catch (e) {}
+        try {
+          this.bedAudio.pause();
+          this.bedAudio.currentTime = 0;
+        } catch (e) {}
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+      }
+
+      pcmToWavUrl(base64Pcm, sampleRate = 24000) {
+        const binary = atob(base64Pcm);
+        const pcmBytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) pcmBytes[i] = binary.charCodeAt(i);
+        const buffer = new ArrayBuffer(44 + pcmBytes.length);
+        const view = new DataView(buffer);
+        const writeStr = (off, s) => {
+          for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+        };
+        writeStr(0, "RIFF");
+        view.setUint32(4, 36 + pcmBytes.length, true);
+        writeStr(8, "WAVE");
+        writeStr(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeStr(36, "data");
+        view.setUint32(40, pcmBytes.length, true);
+        new Uint8Array(buffer, 44).set(pcmBytes);
+        return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+      }
+
+      async fetchGoogleNaturalTTS(dialogueText) {
+        const lines = dialogueText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+
+        const audioUrls = [];
+        for (const line of lines) {
+          const isGiulia = /^Giulia:/i.test(line);
+          const cleanText = line.replace(/^(Marco|Giulia):\s*/i, "").trim();
+          if (!cleanText) continue;
+
+          // Spezza in frasi brevi (<180 caratteri) per lo streaming MP3 fluido
+          const sentences = cleanText.match(/[^.!?]+[.!?]*/g) || [cleanText];
+          for (const s of sentences) {
+            const trimmed = s.trim();
+            if (!trimmed) continue;
+            const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=it&q=${encodeURIComponent(trimmed)}`;
+            audioUrls.push({ url, rate: isGiulia ? 1.08 : 0.96 });
+          }
+        }
+        if (!audioUrls.length) throw new Error("Testo vuoto");
+        return audioUrls;
+      }
+
+      async fetchGeminiTTS(dialogueText) {
+        const apiKey = this.getSavedApiKey();
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(apiKey)}`;
+        const prompt =
+          "Recita in italiano come due brillanti conduttori radiofonici in stile podcast (Marco energetico e simpatico, Giulia brillante e ironica), con ritmo vivace e naturale:\n\n" +
+          dialogueText;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 16000);
+
+        let res;
+        try {
+          res = await fetch(apiUrl, {
+            method: "POST",
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gemini-2.5-flash-preview-tts",
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: {
+                  multiSpeakerVoiceConfig: {
+                    speakerVoiceConfigs: [
+                      { speaker: "Marco", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } },
+                      { speaker: "Giulia", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } }
+                    ]
+                  }
+                }
+              }
+            })
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const part = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        if (!part?.data) throw new Error("Audio vuoto");
+        return this.pcmToWavUrl(part.data, 24000);
+      }
+
+      async playSequenceUrls(items, myReq) {
+        for (const item of items) {
+          if (myReq !== this.requestId) return;
+          await new Promise((resolve) => {
+            this.voiceAudio.src = item.url;
+            this.voiceAudio.playbackRate = item.rate || 1.0;
+            this.voiceAudio.onplay = () => {
+              this.duckRadioBed(0.14);
+              this.setStatus("🔴 IN ONDA: Marco & Giulia (Voce Naturale HD)", true);
+            };
+            this.voiceAudio.onended = resolve;
+            this.voiceAudio.onerror = resolve;
+            this.voiceAudio.play().catch(resolve);
+          });
+        }
+        if (myReq === this.requestId) {
+          this.fadeOutRadioBed();
+          this.setStatus("Intervento concluso • Premi Riascolta per rivedere", false);
+        }
+      }
+
+      speakFallback(dialogueText, myReq) {
+        if (!("speechSynthesis" in window)) {
+          this.fadeOutRadioBed();
+          return;
+        }
+        window.speechSynthesis.cancel();
+        const clean = dialogueText.replace(/^(Marco|Giulia):\s*/gm, "");
+        const utter = new SpeechSynthesisUtterance(clean);
+        utter.lang = "it-IT";
+        const voices = window.speechSynthesis.getVoices();
+        const bestIt =
+          voices.find((v) => v.lang.startsWith("it") && /alice|federica|luca|paola|elsa/i.test(v.name)) ||
+          voices.find((v) => v.lang.startsWith("it"));
+        if (bestIt) utter.voice = bestIt;
+        utter.rate = 1.02;
+        utter.onstart = () => {
+          if (myReq === this.requestId) this.duckRadioBed(0.14);
+        };
+        utter.onend = () => {
+          if (myReq === this.requestId) this.fadeOutRadioBed();
+        };
+        utter.onerror = () => {
+          if (myReq === this.requestId) this.fadeOutRadioBed();
+        };
+        window.speechSynthesis.speak(utter);
+      }
+
+      async speak(dialogueText, force = false) {
+        if (!this.enabled && !force) return;
+        this.stopAll();
+        const myReq = ++this.requestId;
+        this.lastDialogue = dialogueText;
+        this.lastAudioUrl = null;
+
+        this.startRadioBed();
+        this.setStatus("🎙️ Marco & Giulia stanno entrando in onda...", true);
+
+        try {
+          const audioUrl = await this.fetchGeminiTTS(dialogueText);
+          if (myReq !== this.requestId) return;
+          this.lastAudioUrl = audioUrl;
+          this.voiceAudio.src = audioUrl;
+          this.voiceAudio.playbackRate = 1.0;
+          this.voiceAudio.onplay = () => {
+            this.duckRadioBed(0.14);
+            this.setStatus("🔴 IN ONDA: Marco & Giulia (Studio Podcast AI)", true);
+          };
+          this.voiceAudio.onended = () => {
+            this.fadeOutRadioBed();
+            this.setStatus("Intervento concluso • Premi Riascolta per rivedere", false);
+          };
+          await this.voiceAudio.play();
+        } catch (err) {
+          if (myReq !== this.requestId) return;
+          try {
+            const seq = await this.fetchGoogleNaturalTTS(dialogueText);
+            await this.playSequenceUrls(seq, myReq);
+          } catch (e2) {
+            this.setStatus("⚠️ Uso voce locale browser", false);
+            this.speakFallback(dialogueText, myReq);
+          }
+        }
+      }
+
+      async replay() {
+        if (!this.lastDialogue) return;
+        if (this.lastAudioUrl) {
+          const myReq = ++this.requestId;
+          this.startRadioBed();
+          this.voiceAudio.src = this.lastAudioUrl;
+          this.voiceAudio.onplay = () => {
+            if (myReq === this.requestId) {
+              this.duckRadioBed(0.14);
+              this.setStatus("🔴 REPLAY IN ONDA: Marco & Giulia", true);
+            }
+          };
+          this.voiceAudio.onended = () => {
+            if (myReq === this.requestId) this.fadeOutRadioBed();
+          };
+          this.voiceAudio.play().catch(() => {});
+        } else {
+          this.speak(this.lastDialogue, true);
+        }
+      }
+
+      buildCommentary(mode, sortedTeams) {
+        if (!sortedTeams.length) {
+          return "Marco: Qui Radio Quiz Night, siamo pronti ma aspettiamo ancora le squadre in pista!\nGiulia: Forza ragazzi, inquadrate il QR Code che i Pierini vi aspettano!";
+        }
+        if (mode === "top3") {
+          const top = sortedTeams.slice(0, 3);
+          const listStr = top.map((t, i) => `${i + 1}° ${t.name} con ${t.score} Pierini`).join(", ");
+          return (
+            `Marco: Attenzione Giulia, guardiamo la zona calda del podio! Al comando abbiamo ${listStr}!\n` +
+            `Giulia: Non rilassatevi troppo lì davanti: basta una domanda con Pierini Doppi per ribaltare tutta la classifica!`
+          );
+        }
+        if (mode === "bottom3") {
+          const bottom = sortedTeams.slice(-3);
+          const listStr = bottom.map((t) => `${t.name} a quota ${t.score} Pierini`).join(", ");
+          return (
+            `Giulia: Occhio alle retrovie Marco! Diamo una scossa a ${listStr}!\n` +
+            `Marco: Ragazzi, la serata è ancora lunga: dite basta alle esitazioni, spingete sul pulsante e partite alla rimonta!`
+          );
+        }
+        if (mode === "podium") {
+          const w = sortedTeams[0];
+          return (
+            `Marco: Signori e signore, rullo di tamburi da Radio Quiz Night! Il gran finale è arrivato!\n` +
+            `Giulia: E in testa alla classifica troviamo ${w.name} con ben ${w.score} Pierini! Sveliamo subito il podio completo!`
+          );
+        }
+        if (mode === "welcome") {
+          const count = sortedTeams.length;
+          const namesIntro =
+            count > 0
+              ? `Un saluto alle ${count} squadre in gara: ${sortedTeams.map((t) => t.name).join(", ")}!`
+              : "Tenete pronti gli smartphone!";
+          return (
+            `Marco: Buonasera e benvenuti a tutti a Quiz Night Live! ${namesIntro}\n` +
+            `Giulia: Regole lampo: guardate la TV e premete il tasto giusto sul telefono prima dello scadere! Più siete veloci, più guadagnate i nostri Pierini!\n` +
+            `Marco: Occhio ai round con Pierini Doppi per ribaltare la classifica. Dita calde sulle pulsantiere, si parte!`
+          );
+        }
+        const leader = sortedTeams[0];
+        return (
+          `Marco: Aggiornamento flash dalla regia: guida la classifica ${leader.name} con ${leader.score} Pierini!\n` +
+          `Giulia: Ma dietro sono tutti attaccati: tenete il dito pronto sul buzzer perché la prossima domanda vale oro!`
+        );
+      }
+    }
+
+    // =========================================================================
+    // 4. EFFETTO CORIANDOLI FINALE
+    // =========================================================================
+    function launchConfetti() {
+      const canvas = document.getElementById("confetti-canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const colors = ["#38bdf8", "#fbbf24", "#f472b6", "#34d399", "#a78bfa", "#fb7185"];
+      const pieces = Array.from({ length: 140 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        w: Math.random() * 10 + 6,
+        h: Math.random() * 6 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.random() * 3 + 2.5,
+        vx: (Math.random() - 0.5) * 2.5,
+        rot: Math.random() * 360,
+        vrot: (Math.random() - 0.5) * 8
+      }));
+
+      let frames = 0;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot += p.vrot;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        });
+        frames++;
+        if (frames < 220) requestAnimationFrame(draw);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      draw();
+    }
+
+    // =========================================================================
+    // 5. STATO GLOBALE & ALGORITMO MESCOLAMENTO ANTI-BLOCCO
+    // =========================================================================
+    const sfx = new SoundEffects();
+    const musicPlayer = new MusicAudioManager();
+    const djVoice = new DJVoiceEngine();
+
+    function showToast(msg, type = "info") {
+      const container = document.getElementById("toast-container");
+      const el = document.createElement("div");
+      const styles = {
+        info: "border-sky-400/40 bg-slate-900/95 text-sky-100",
+        success: "border-emerald-400/40 bg-slate-900/95 text-emerald-200",
+        warn: "border-amber-400/40 bg-slate-900/95 text-amber-200"
+      };
+      el.className = `px-4 py-3 rounded-2xl border shadow-xl text-xs sm:text-sm font-semibold pop-in ${styles[type] || styles.info}`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3400);
+    }
+
+    // Mescola le domande evitando che escano due dello stesso argomento di fila
+    function shuffleQuestionsAntiBlock(questions) {
+      const pool = [...questions];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const result = [];
+      let lastCat = null;
+      while (pool.length > 0) {
+        let idx = pool.findIndex((q) => q.category !== lastCat);
+        if (idx === -1) idx = 0;
+        const [picked] = pool.splice(idx, 1);
+        result.push(picked);
+        lastCat = picked.category;
+      }
+      return result;
+    }
+
+    const state = {
+      role: null,
+      roomCode: "",
+      peer: null,
+      connections: new Map(), // Host -> client conns
+      hostConn: null, // Client -> host conn
+      allQuestions: [...DEFAULT_QUESTIONS],
+      selectedCategories: new Set(DEFAULT_QUESTIONS.map((q) => q.category)),
+      deck: [],
+      currentIndex: 0,
+      phase: "lobby", // lobby | question | revealed | leaderboard | podium
+      timerDuration: 15,
+      timeLeft: 15,
+      timerInterval: null,
+      doublePoints: false,
+      suspenseMode: false,
+      penaltyEnabled: false,
+      teams: new Map(), // teamId -> { id, name, emoji, score, lastAnswer, lastTimeMs, lastDelta }
+      myTeamId: null,
+      questionsSinceFlash: 0,
+      nextFlashThreshold: 5,
+      lbMode: "general", // general | top3 | bottom3 | podium
+      podiumStep: 0 // 0=nascosto, 1=3° svelato, 2=2° svelato, 3=1° svelato
+    };
+
+    function rebuildDeck() {
+      const filtered = state.allQuestions.filter((q) => state.selectedCategories.has(q.category));
+      state.deck = shuffleQuestionsAntiBlock(filtered.length ? filtered : state.allQuestions);
+      const countEl = document.getElementById("tv-active-q-count");
+      if (countEl) countEl.textContent = state.deck.length;
+    }
+
+    function getSortedTeams() {
+      return Array.from(state.teams.values()).sort((a, b) => b.score - a.score);
+    }
+
+    function generateRoomCode() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "";
+      for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    // =========================================================================
+    // 6. LOGICA HOST (SCHERMO TV) & SINCRONIZZAZIONE PEERJS
+    // =========================================================================
+    function buildPublicSnapshot() {
+      const q = state.deck[state.currentIndex] || null;
+      const teamsArr = getSortedTeams().map((t, idx) => ({
+        id: t.id,
+        name: t.name,
+        emoji: t.emoji,
+        score: t.score,
+        rank: idx + 1,
+        hasAnswered: t.lastAnswer !== null && t.lastAnswer !== undefined,
+        lastDelta: t.lastDelta || 0
+      }));
+
+      return {
+        type: "STATE_SYNC",
+        phase: state.phase,
+        roomCode: state.roomCode,
+        currentIndex: state.currentIndex,
+        totalQuestions: state.deck.length,
+        timeLeft: state.timeLeft,
+        timerDuration: state.timerDuration,
+        doublePoints: state.doublePoints,
+        suspenseMode: state.suspenseMode,
+        teams: teamsArr,
+        question: q
+          ? {
+              category: q.category,
+              subtype: q.subtype || "standard",
+              question: q.question,
+              options: q.options,
+              correct: state.phase === "revealed" ? q.correct : null,
+              secretCorrect: q.correct
+            }
+          : null
+      };
+    }
+
+    function broadcastState() {
+      const snap = buildPublicSnapshot();
+      state.connections.forEach((conn) => {
+        if (conn.open) {
+          conn.send(snap);
+        }
+      });
+    }
+
+    function startTVHost() {
+      state.role = "tv";
+      state.roomCode = generateRoomCode();
+      rebuildDeck();
+      showScreen("screen-tv");
+
+      document.getElementById("tv-room-badge").textContent = state.roomCode;
+      document.getElementById("tv-room-code-big").textContent = state.roomCode;
+      document.getElementById("tv-deck-count").textContent = state.allQuestions.length;
+
+      const joinUrl = `${window.location.origin}${window.location.pathname}?room=${state.roomCode}&role=team`;
+      const qrBox = document.getElementById("tv-qrcode");
+      qrBox.innerHTML = "";
+      new QRCode(qrBox, {
+        text: joinUrl,
+        width: 196,
+        height: 196,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      const peerId = `quiznightlive-${state.roomCode}`;
+      state.peer = new Peer(peerId);
+
+      state.peer.on("open", () => {
+        document.getElementById("tv-conn-dot").className = "w-2 h-2 rounded-full bg-emerald-400";
+        document.getElementById("tv-conn-text").textContent = "Connesso • Stanza attiva";
+      });
+
+      state.peer.on("error", (err) => {
+        document.getElementById("tv-conn-dot").className = "w-2 h-2 rounded-full bg-rose-500";
+        document.getElementById("tv-conn-text").textContent = `Errore rete: ${err.type}`;
+      });
+
+      state.peer.on("connection", (conn) => {
+        state.connections.set(conn.peer, conn);
+        conn.on("open", () => {
+          conn.send(buildPublicSnapshot());
+        });
+        conn.on("data", (msg) => handleHostMessage(conn, msg));
+        conn.on("close", () => {
+          state.connections.delete(conn.peer);
+        });
+      });
+
+      renderCategoryPills();
+      renderTV();
+      djVoice.refreshKeyIndicator();
+      djVoice.preloadRadioBed();
+    }
+
+    function handleHostMessage(conn, msg) {
+      if (!msg || typeof msg !== "object") return;
+
+      if (msg.type === "JOIN_TEAM") {
+        const cleanName = (msg.name || "Squadra").trim().slice(0, 18);
+        // Recupera punteggio se la squadra rientra con lo stesso nome
+        let existing = Array.from(state.teams.values()).find(
+          (t) => t.name.toLowerCase() === cleanName.toLowerCase()
+        );
+        const teamId = existing ? existing.id : "team_" + Math.random().toString(36).slice(2, 9);
+        const teamObj = existing || {
+          id: teamId,
+          name: cleanName,
+          emoji: msg.emoji || "🦁",
+          score: 0,
+          lastAnswer: null,
+          lastTimeMs: null,
+          lastDelta: 0
+        };
+        teamObj.emoji = msg.emoji || teamObj.emoji;
+        state.teams.set(teamId, teamObj);
+        conn.send({ type: "JOIN_ACCEPTED", teamId });
+        sfx.buzz();
+        showToast(`${teamObj.emoji} ${teamObj.name} è entrata in partita!`, "success");
+        renderTV();
+        broadcastState();
+      }
+
+      if (msg.type === "SUBMIT_ANSWER") {
+        if (state.phase !== "question") return;
+        const team = state.teams.get(msg.teamId);
+        if (!team || team.lastAnswer !== null) return;
+        team.lastAnswer = Number(msg.optionIdx);
+        team.lastTimeMs = Math.max(100, (state.timerDuration - state.timeLeft) * 1000);
+        sfx.buzz();
+        renderTV();
+        broadcastState();
+
+        // Se tutte le squadre hanno risposto, ferma il timer e svela subito
+        const allAnswered =
+          state.teams.size > 0 &&
+          Array.from(state.teams.values()).every((t) => t.lastAnswer !== null);
+        if (allAnswered) {
+          setTimeout(() => hostRevealAnswer(), 450);
+        }
+      }
+
+      if (msg.type === "REMOTE_CMD") {
+        if (msg.cmd === "START_OR_NEXT") {
+          if (state.phase === "lobby") hostStartGame();
+          else if (state.phase === "leaderboard") hostNextQuestion(true);
+          else hostNextQuestion(false);
+        } else if (msg.cmd === "REVEAL") {
+          hostRevealAnswer();
+        } else if (msg.cmd === "LEADERBOARD") {
+          hostShowLeaderboard("general");
+        } else if (msg.cmd === "DJ_FLASH") {
+          const modes = ["top3", "bottom3", "general"];
+          const rnd = modes[Math.floor(Math.random() * modes.length)];
+          hostShowLeaderboard(rnd);
+        } else if (msg.cmd === "WELCOME_INTRO") {
+          hostPlayWelcomeIntro();
+        } else if (msg.cmd === "TOGGLE_DOUBLE") {
+          state.doublePoints = !state.doublePoints;
+          renderTV();
+          broadcastState();
+        } else if (msg.cmd === "TOGGLE_SUSPENSE") {
+          state.suspenseMode = !state.suspenseMode;
+          renderTV();
+          broadcastState();
+        } else if (msg.cmd === "SET_TIMER") {
+          state.timerDuration = Number(msg.sec) || 15;
+          renderTV();
+          broadcastState();
+        } else if (msg.cmd === "AUDIO_TOGGLE") {
+          musicPlayer.toggle();
+          renderTV();
+        } else if (msg.cmd === "AUDIO_RESTART") {
+          musicPlayer.restart();
+          renderTV();
+        }
+      }
+    }
+
+    function hostPlayWelcomeIntro() {
+      const sorted = getSortedTeams();
+      const script = djVoice.buildCommentary("welcome", sorted);
+      djVoice.speak(script, true);
+      showToast("🎙️ Sigla & Regole in onda con Marco & Giulia!", "info");
+    }
+
+    function hostStartGame() {
+      if (state.deck.length === 0) rebuildDeck();
+      state.currentIndex = 0;
+      state.questionsSinceFlash = 0;
+      state.nextFlashThreshold = 5;
+      hostLoadQuestion(0);
+    }
+
+    function hostLoadQuestion(idx) {
+      clearInterval(state.timerInterval);
+      musicPlayer.stop();
+      djVoice.stopAll();
+
+      if (idx >= state.deck.length) {
+        hostShowPodium();
+        return;
+      }
+
+      state.currentIndex = idx;
+      state.phase = "question";
+      state.timeLeft = state.timerDuration;
+      state.teams.forEach((t) => {
+        t.lastAnswer = null;
+        t.lastTimeMs = null;
+        t.lastDelta = 0;
+      });
+
+      const q = state.deck[state.currentIndex];
+      renderTV();
+      broadcastState();
+
+      if (q.subtype === "audio" && q.searchTerm) {
+        musicPlayer.loadAndPlay(q.searchTerm, (statusMsg) => {
+          const st = document.getElementById("tv-audio-status");
+          if (st) st.textContent = statusMsg;
+        });
+      }
+
+      state.timerInterval = setInterval(() => {
+        state.timeLeft -= 1;
+        if (state.timeLeft > 0) {
+          if (q.subtype !== "audio") {
+            sfx.tick(state.timeLeft <= 5);
+          }
+          updateTimerUI();
+          broadcastState();
+        } else {
+          state.timeLeft = 0;
+          updateTimerUI();
+          hostRevealAnswer();
+        }
+      }, 1000);
+    }
+
+    function hostRevealAnswer() {
+      if (state.phase !== "question") return;
+      clearInterval(state.timerInterval);
+      state.phase = "revealed";
+      sfx.reveal();
+
+      const q = state.deck[state.currentIndex];
+      const mult = state.doublePoints ? 2 : 1;
+      let fastestTeam = null;
+      let fastestMs = Infinity;
+
+      state.teams.forEach((t) => {
+        if (t.lastAnswer === q.correct) {
+          const elapsedSec = (t.lastTimeMs || state.timerDuration * 1000) / 1000;
+          const speedRatio = Math.max(0, 1 - elapsedSec / state.timerDuration);
+          const speedBonus = Math.round(speedRatio * 300);
+          const earned = (500 + speedBonus) * mult;
+          t.score += earned;
+          t.lastDelta = earned;
+          if ((t.lastTimeMs || Infinity) < fastestMs) {
+            fastestMs = t.lastTimeMs;
+            fastestTeam = t;
+          }
+        } else if (t.lastAnswer !== null && state.penaltyEnabled) {
+          const malus = 200 * mult;
+          t.score = Math.max(0, t.score - malus);
+          t.lastDelta = -malus;
+        } else {
+          t.lastDelta = 0;
+        }
+      });
+
+      state.questionsSinceFlash += 1;
+      state.doublePoints = false;
+
+      renderTV(fastestTeam, fastestMs);
+      broadcastState();
+    }
+
+    function hostNextQuestion(skipFlashCheck = false) {
+      const nextIdx = state.currentIndex + 1;
+      if (nextIdx >= state.deck.length) {
+        hostShowPodium();
+        return;
+      }
+
+      // A partire dalla 5ª domanda, lancia un Flash Classifica randomico ogni 3-5 domande
+      if (!skipFlashCheck && state.questionsSinceFlash >= state.nextFlashThreshold) {
+        state.questionsSinceFlash = 0;
+        state.nextFlashThreshold = Math.floor(Math.random() * 3) + 3; // 3, 4 o 5 domande
+        const flashModes = ["top3", "bottom3", "general"];
+        const chosen = flashModes[Math.floor(Math.random() * flashModes.length)];
+        hostShowLeaderboard(chosen);
+        return;
+      }
+
+      hostLoadQuestion(nextIdx);
+    }
+
+    function hostShowLeaderboard(mode = "general") {
+      clearInterval(state.timerInterval);
+      musicPlayer.stop();
+      state.phase = "leaderboard";
+      state.lbMode = mode;
+      renderTV();
+      broadcastState();
+
+      const sorted = getSortedTeams();
+      const dialogue = djVoice.buildCommentary(mode, sorted);
+      djVoice.speak(dialogue);
+    }
+
+    function hostShowPodium() {
+      clearInterval(state.timerInterval);
+      musicPlayer.stop();
+      state.phase = "podium";
+      state.lbMode = "podium";
+      state.suspenseMode = false;
+      state.podiumStep = 0;
+      renderTV();
+      broadcastState();
+
+      const sorted = getSortedTeams();
+      const dialogue = djVoice.buildCommentary("podium", sorted);
+      djVoice.speak(dialogue);
+    }
+
+    // =========================================================================
+    // 7. RENDERING SCHERMO TV
+    // =========================================================================
+    function renderCategoryPills() {
+      const container = document.getElementById("tv-category-pills");
+      if (!container) return;
+      const cats = Array.from(new Set(state.allQuestions.map((q) => q.category)));
+      container.innerHTML = "";
+      cats.forEach((cat) => {
+        const active = state.selectedCategories.has(cat);
+        const count = state.allQuestions.filter((q) => q.category === cat).length;
+        const btn = document.createElement("button");
+        btn.className = active
+          ? "px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-500/25 border border-sky-400/50 text-sky-200 transition"
+          : "px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 transition";
+        btn.textContent = `${active ? "✓ " : ""}${cat} (${count})`;
+        btn.onclick = () => {
+          if (state.selectedCategories.has(cat)) {
+            if (state.selectedCategories.size > 1) state.selectedCategories.delete(cat);
+          } else {
+            state.selectedCategories.add(cat);
+          }
+          rebuildDeck();
+          renderCategoryPills();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function updateTimerUI() {
+      const numEl = document.getElementById("tv-timer-number");
+      const barEl = document.getElementById("tv-timer-bar");
+      if (!numEl || !barEl) return;
+      numEl.textContent = `${state.timeLeft}s`;
+      const pct = Math.max(0, (state.timeLeft / state.timerDuration) * 100);
+      barEl.style.width = `${pct}%`;
+      if (state.timeLeft <= 5) {
+        numEl.className = "font-mono text-2xl sm:text-3xl font-black text-rose-400 w-14 text-right animate-pulse";
+        barEl.className = "h-full bg-gradient-to-r from-rose-500 to-amber-400 timer-bar-transition";
+      } else {
+        numEl.className = "font-mono text-2xl sm:text-3xl font-black text-sky-300 w-14 text-right";
+        barEl.className = "h-full bg-gradient-to-r from-sky-400 to-emerald-400 timer-bar-transition";
+      }
+    }
+
+    function renderTV(fastestTeam = null, fastestMs = 0) {
+      document.getElementById("tv-teams-count").textContent = `${state.teams.size} squadre`;
+      document.getElementById("tv-btn-double").textContent = `🔥 Pierini x2: ${state.doublePoints ? "ON" : "OFF"}`;
+      document.getElementById("tv-btn-suspense").textContent = `🎭 Suspense: ${state.suspenseMode ? "ON" : "OFF"}`;
+
+      const lobbyEl = document.getElementById("tv-phase-lobby");
+      const qEl = document.getElementById("tv-phase-question");
+      const lbEl = document.getElementById("tv-phase-leaderboard");
+
+      lobbyEl.classList.add("hidden");
+      qEl.classList.add("hidden");
+      lbEl.classList.add("hidden");
+
+      // --- LOBBY ---
+      if (state.phase === "lobby") {
+        lobbyEl.classList.remove("hidden");
+        const list = document.getElementById("tv-lobby-teams");
+        const badge = document.getElementById("tv-lobby-team-badge");
+        badge.textContent = `${state.teams.size} pronte`;
+
+        if (state.teams.size === 0) {
+          list.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center text-slate-500 py-8 text-sm border border-dashed border-slate-800 rounded-2xl">In attesa che le squadre inquadrino il QR Code...</div>`;
+        } else {
+          list.innerHTML = Array.from(state.teams.values())
+            .map(
+              (t) => `
+              <div class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/90 border border-slate-700/70 pop-in">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">${t.emoji}</span>
+                  <span class="font-bold text-white">${t.name}</span>
+                </div>
+                <span class="text-xs font-mono font-bold text-amber-300">${t.score} 🪙</span>
+              </div>`
+            )
+            .join("");
+        }
+        return;
+      }
+
+      // --- DOMANDA / SVELAMENTO ---
+      if (state.phase === "question" || state.phase === "revealed") {
+        qEl.classList.remove("hidden");
+        const q = state.deck[state.currentIndex];
+        document.getElementById("tv-q-progress").textContent = `Domanda ${state.currentIndex + 1} / ${state.deck.length}`;
+        document.getElementById("tv-q-category").textContent = q.category;
+        document.getElementById("tv-q-text").textContent = q.question;
+
+        const doubleBadge = document.getElementById("tv-q-double-badge");
+        doubleBadge.classList.toggle("hidden", !state.doublePoints);
+
+        const answeredCount = Array.from(state.teams.values()).filter((t) => t.lastAnswer !== null).length;
+        document.getElementById("tv-answered-counter").textContent = `Risposte: ${answeredCount} / ${state.teams.size}`;
+        updateTimerUI();
+
+        // Media Boxes
+        const audioBox = document.getElementById("tv-media-audio");
+        const lyricsBox = document.getElementById("tv-media-lyrics");
+        const quoteBox = document.getElementById("tv-media-quote");
+        const subBadge = document.getElementById("tv-q-subtype-badge");
+
+        audioBox.classList.add("hidden");
+        lyricsBox.classList.add("hidden");
+        quoteBox.classList.add("hidden");
+        subBadge.classList.add("hidden");
+
+        if (q.subtype === "audio") {
+          subBadge.classList.remove("hidden");
+          subBadge.textContent = "🎧 MANCHE MUSICALE";
+          audioBox.classList.remove("hidden");
+          const coverImg = document.getElementById("tv-song-cover");
+          const revInfo = document.getElementById("tv-song-reveal-info");
+          if (state.phase === "revealed") {
+            revInfo.classList.remove("hidden");
+            revInfo.textContent = `🎵 ${q.artist} — ${q.songTitle}`;
+            if (musicPlayer.currentMeta?.artwork) {
+              coverImg.src = musicPlayer.currentMeta.artwork;
+              coverImg.classList.remove("hidden");
+            }
+          } else {
+            revInfo.classList.add("hidden");
+            coverImg.classList.add("hidden");
+          }
+        } else if (q.subtype === "lyrics") {
+          subBadge.classList.remove("hidden");
+          subBadge.textContent = "🎤 COMPLETA IL TESTO";
+          lyricsBox.classList.remove("hidden");
+          const filled =
+            state.phase === "revealed"
+              ? q.lyrics.replace("_____", `<span class="text-emerald-300 underline decoration-2">${q.missingWord.toUpperCase()}</span>`)
+              : q.lyrics;
+          document.getElementById("tv-lyrics-line").innerHTML = `"${filled}"`;
+          document.getElementById("tv-lyrics-artist").textContent = q.artist || "";
+        } else if (q.subtype === "quote") {
+          subBadge.classList.remove("hidden");
+          subBadge.textContent = "💬 CITAZIONE CULT";
+          quoteBox.classList.remove("hidden");
+          document.getElementById("tv-quote-line").textContent = `"${q.quote}"`;
+          document.getElementById("tv-quote-hint").textContent = q.hint || "";
+        }
+
+        // Opzioni A B C D
+        const letters = ["A", "B", "C", "D"];
+        const optGrid = document.getElementById("tv-options-grid");
+        optGrid.innerHTML = q.options
+          .map((opt, i) => {
+            const isCorrect = state.phase === "revealed" && i === q.correct;
+            const isDimmed = state.phase === "revealed" && i !== q.correct;
+            const cardCls = isCorrect
+              ? "bg-emerald-500/25 border-emerald-400 text-white shadow-lg shadow-emerald-500/20 scale-[1.01]"
+              : isDimmed
+              ? "bg-slate-900/50 border-slate-800 text-slate-500 opacity-55"
+              : "bg-slate-900/85 border-slate-700/80 text-white";
+            const badgeCls = isCorrect ? "bg-emerald-400 text-slate-950" : "bg-slate-800 text-sky-300";
+            return `
+              <div class="p-4 sm:p-5 rounded-2xl border-2 flex items-center gap-4 transition-all ${cardCls}">
+                <span class="w-10 h-10 rounded-xl flex items-center justify-center font-display font-black text-lg shrink-0 ${badgeCls}">
+                  ${letters[i]}
+                </span>
+                <span class="font-bold text-base sm:text-xl">${opt}</span>
+              </div>`;
+          })
+          .join("");
+
+        // Banner squadra più veloce
+        const fastBanner = document.getElementById("tv-fastest-banner");
+        if (state.phase === "revealed" && fastestTeam) {
+          fastBanner.classList.remove("hidden");
+          fastBanner.innerHTML = `⚡ Risposta più veloce: <strong>${fastestTeam.emoji} ${fastestTeam.name}</strong> (${(fastestMs / 1000).toFixed(1)}s) → <strong>+${fastestTeam.lastDelta} 🪙 Pierini!</strong>`;
+        } else {
+          fastBanner.classList.add("hidden");
+        }
+
+        // Pillole squadre che hanno risposto
+        const strip = document.getElementById("tv-live-answers-strip");
+        strip.innerHTML = Array.from(state.teams.values())
+          .map((t) => {
+            const answered = t.lastAnswer !== null;
+            return `<span class="px-2.5 py-1 rounded-lg text-xs font-semibold ${
+              answered ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30" : "bg-slate-900 text-slate-500"
+            }">${t.emoji} ${t.name} ${answered ? "✓" : "..."}</span>`;
+          })
+          .join("");
+
+        document.getElementById("tv-btn-reveal").classList.toggle("hidden", state.phase !== "question");
+        document.getElementById("tv-btn-leaderboard").classList.toggle("hidden", state.phase !== "revealed");
+        document.getElementById("tv-btn-next").classList.toggle("hidden", state.phase !== "revealed");
+        return;
+      }
+
+      // --- CLASSIFICA / FLASH DJ / PODIO FINALE ---
+      if (state.phase === "leaderboard" || state.phase === "podium") {
+        lbEl.classList.remove("hidden");
+        const sorted = getSortedTeams();
+        const podiumStage = document.getElementById("tv-podium-stage");
+        const lbList = document.getElementById("tv-leaderboard-list");
+        const lbActions = document.getElementById("tv-lb-actions");
+
+        if (state.phase === "podium") {
+          document.getElementById("tv-lb-badge").textContent = "👑 GRAN FINALE • PODIO PIERINI";
+          document.getElementById("tv-lb-title").textContent = "I Campioni della Serata";
+          document.getElementById("tv-lb-subtitle").textContent = "Sveliamo il podio gradino dopo gradino!";
+          podiumStage.classList.remove("hidden");
+          lbActions.classList.add("hidden");
+
+          const t1 = sorted[0];
+          const t2 = sorted[1];
+          const t3 = sorted[2];
+
+          document.getElementById("podium-3-emoji").textContent = state.podiumStep >= 1 && t3 ? t3.emoji : "❓";
+          document.getElementById("podium-3-name").textContent = state.podiumStep >= 1 && t3 ? t3.name : "3° Posto";
+          document.getElementById("podium-3-score").textContent = state.podiumStep >= 1 && t3 ? `${t3.score} 🪙` : "--- 🪙";
+
+          document.getElementById("podium-2-emoji").textContent = state.podiumStep >= 2 && t2 ? t2.emoji : "❓";
+          document.getElementById("podium-2-name").textContent = state.podiumStep >= 2 && t2 ? t2.name : "2° Posto";
+          document.getElementById("podium-2-score").textContent = state.podiumStep >= 2 && t2 ? `${t2.score} 🪙` : "--- 🪙";
+
+          document.getElementById("podium-1-emoji").textContent = state.podiumStep >= 3 && t1 ? t1.emoji : "❓";
+          document.getElementById("podium-1-name").textContent = state.podiumStep >= 3 && t1 ? t1.name : "1° Posto";
+          document.getElementById("podium-1-score").textContent = state.podiumStep >= 3 && t1 ? `${t1.score} 🪙` : "--- 🪙";
+
+          const revBtn = document.getElementById("tv-btn-reveal-podium");
+          const restartBtn = document.getElementById("tv-btn-restart-same");
+          if (state.podiumStep === 0) {
+            revBtn.classList.remove("hidden");
+            revBtn.textContent = "🥁 Svela 3° Posto";
+            restartBtn.classList.add("hidden");
+          } else if (state.podiumStep === 1) {
+            revBtn.classList.remove("hidden");
+            revBtn.textContent = "🥁 Svela 2° Posto";
+            restartBtn.classList.add("hidden");
+          } else if (state.podiumStep === 2) {
+            revBtn.classList.remove("hidden");
+            revBtn.textContent = "👑 SVELA I CAMPIONI!";
+            restartBtn.classList.add("hidden");
+          } else {
+            revBtn.classList.add("hidden");
+            restartBtn.classList.remove("hidden");
+          }
+
+          lbList.innerHTML = sorted
+            .slice(3)
+            .map(
+              (t, idx) => `
+              <div class="glass-panel rounded-2xl px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="font-mono font-bold text-slate-400">#${idx + 4}</span>
+                  <span class="text-xl">${t.emoji}</span>
+                  <span class="font-bold text-white">${t.name}</span>
+                </div>
+                <span class="font-mono font-bold text-amber-300">${t.score} 🪙 Pierini</span>
+              </div>`
+            )
+            .join("");
+          return;
+        }
+
+        // Classifica intermedia (general | top3 | bottom3)
+        podiumStage.classList.add("hidden");
+        lbActions.classList.remove("hidden");
+
+        let displayTeams = sorted.map((t, i) => ({ ...t, realRank: i + 1 }));
+        if (state.lbMode === "top3") {
+          document.getElementById("tv-lb-badge").textContent = "👑 FLASH DJ • TOP 3 ZONA PODIO";
+          document.getElementById("tv-lb-title").textContent = "I Primi 3 della Classe";
+          document.getElementById("tv-lb-subtitle").textContent = "Occhio a non farvi rimontare sul più bello!";
+          displayTeams = displayTeams.slice(0, 3);
+        } else if (state.lbMode === "bottom3") {
+          document.getElementById("tv-lb-badge").textContent = "⚡ FLASH DJ • ZONA RIMONTA";
+          document.getElementById("tv-lb-title").textContent = "Gli Ultimi 3: Carica al Massimo!";
+          document.getElementById("tv-lb-subtitle").textContent = "Un paio di risposte veloci e rientrate in gioco!";
+          displayTeams = displayTeams.slice(-3);
+        } else {
+          document.getElementById("tv-lb-badge").textContent = "🏆 AGGIORNAMENTO CLASSIFICA";
+          document.getElementById("tv-lb-title").textContent = "Classifica in 🪙 Pierini";
+          document.getElementById("tv-lb-subtitle").textContent = state.suspenseMode
+            ? "🎭 Modalità Suspense attiva: punteggi nascosti fino al podio!"
+            : "Ecco la situazione aggiornata al tavolo";
+        }
+
+        lbList.innerHTML = displayTeams
+          .map((t) => {
+            const medal = t.realRank === 1 ? "🥇" : t.realRank === 2 ? "🥈" : t.realRank === 3 ? "🥉" : `#${t.realRank}`;
+            const scoreStr = state.suspenseMode ? "??? 🪙" : `${t.score} 🪙 Pierini`;
+            const deltaHtml =
+              !state.suspenseMode && t.lastDelta > 0
+                ? `<span class="text-xs font-bold text-emerald-400 ml-2">+${t.lastDelta}</span>`
+                : !state.suspenseMode && t.lastDelta < 0
+                ? `<span class="text-xs font-bold text-rose-400 ml-2">${t.lastDelta}</span>`
+                : "";
+            return `
+              <div class="glass-panel rounded-2xl p-4 sm:p-5 flex items-center justify-between border-slate-700/80 pop-in">
+                <div class="flex items-center gap-4">
+                  <span class="font-display font-black text-xl sm:text-2xl w-9 text-center text-amber-300">${medal}</span>
+                  <span class="text-3xl">${t.emoji}</span>
+                  <div>
+                    <div class="font-display font-bold text-lg sm:text-xl text-white">${t.name}</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="font-mono font-black text-lg sm:text-2xl text-amber-300">${scoreStr}</span>
+                  ${deltaHtml}
+                </div>
+              </div>`;
+          })
+          .join("");
+      }
+    }
+
+    // =========================================================================
+    // 8. CLIENT: PULSANTIERA SQUADRA & REGIA REMOTA
+    // =========================================================================
+    function initTeamScreen(prefillRoom = "") {
+      state.role = "team";
+      showScreen("screen-team");
+      if (prefillRoom) document.getElementById("input-team-room").value = prefillRoom.toUpperCase();
+
+      const picker = document.getElementById("team-emoji-picker");
+      let selectedEmoji = TEAM_EMOJIS[0];
+      picker.innerHTML = "";
+      TEAM_EMOJIS.forEach((em, idx) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className =
+          idx === 0
+            ? "p-2 rounded-xl bg-sky-500/30 border border-sky-400 text-2xl"
+            : "p-2 rounded-xl bg-slate-900 border border-slate-800 text-2xl hover:border-slate-600";
+        b.textContent = em;
+        b.onclick = () => {
+          selectedEmoji = em;
+          Array.from(picker.children).forEach((c) => {
+            c.className = "p-2 rounded-xl bg-slate-900 border border-slate-800 text-2xl hover:border-slate-600";
+          });
+          b.className = "p-2 rounded-xl bg-sky-500/30 border border-sky-400 text-2xl";
+        };
+        picker.appendChild(b);
+      });
+
+      document.getElementById("btn-team-join").onclick = () => {
+        const code = document.getElementById("input-team-room").value.trim().toUpperCase();
+        const name = document.getElementById("input-team-name").value.trim() || "Squadra";
+        if (code.length < 4) {
+          showToast("Inserisci il codice stanza di 4 caratteri!", "warn");
+          return;
+        }
+        connectClientToHost(code, () => {
+          state.hostConn.send({ type: "JOIN_TEAM", name, emoji: selectedEmoji });
+        });
+      };
+    }
+
+    function initRemoteScreen(prefillRoom = "") {
+      state.role = "remote";
+      showScreen("screen-remote");
+      if (prefillRoom) document.getElementById("input-remote-room").value = prefillRoom.toUpperCase();
+
+      document.getElementById("btn-remote-connect").onclick = () => {
+        const code = document.getElementById("input-remote-room").value.trim().toUpperCase();
+        if (code.length < 4) {
+          showToast("Inserisci il codice stanza della TV!", "warn");
+          return;
+        }
+        connectClientToHost(code, () => {
+          document.getElementById("remote-login-box").classList.add("hidden");
+          document.getElementById("remote-panel-box").classList.remove("hidden");
+        });
+      };
+    }
+
+    function connectClientToHost(roomCode, onConnected) {
+      state.roomCode = roomCode;
+      if (state.peer) state.peer.destroy();
+      state.peer = new Peer();
+
+      const dot = document.getElementById(state.role === "team" ? "team-conn-dot" : "remote-conn-dot");
+      const txt = document.getElementById(state.role === "team" ? "team-conn-text" : "remote-conn-text");
+      dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+      txt.textContent = "Connessione alla TV...";
+
+      state.peer.on("open", () => {
+        const conn = state.peer.connect(`quiznightlive-${roomCode}`, { reliable: true });
+        state.hostConn = conn;
+
+        conn.on("open", () => {
+          dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+          txt.textContent = `Connesso • Stanza ${roomCode}`;
+          if (onConnected) onConnected();
+        });
+
+        conn.on("data", (msg) => {
+          if (msg.type === "JOIN_ACCEPTED") {
+            state.myTeamId = msg.teamId;
+            document.getElementById("team-login-box").classList.add("hidden");
+            document.getElementById("team-pad-box").classList.remove("hidden");
+          }
+          if (msg.type === "STATE_SYNC") {
+            if (state.role === "team") renderTeamClient(msg);
+            if (state.role === "remote") renderRemoteClient(msg);
+          }
+        });
+
+        conn.on("close", () => {
+          dot.className = "w-2 h-2 rounded-full bg-rose-500";
+          txt.textContent = "Disconnesso dalla TV";
+        });
+      });
+    }
+
+    let lastTeamQuestionIdx = -1;
+    let myChosenOption = null;
+
+    function renderTeamClient(snap) {
+      const me = snap.teams.find((t) => t.id === state.myTeamId);
+      if (me) {
+        document.getElementById("team-hud-emoji").textContent = me.emoji;
+        document.getElementById("team-hud-name").textContent = me.name;
+        document.getElementById("team-hud-rank").textContent = `${me.rank}° in classifica`;
+        document.getElementById("team-hud-score").textContent = snap.suspenseMode ? "??? 🪙" : `${me.score} 🪙`;
+      }
+
+      if (snap.currentIndex !== lastTeamQuestionIdx) {
+        lastTeamQuestionIdx = snap.currentIndex;
+        myChosenOption = null;
+      }
+
+      const btns = document.querySelectorAll(".team-ans-btn");
+      const titleEl = document.getElementById("team-status-title");
+      const subEl = document.getElementById("team-status-sub");
+
+      if (snap.phase === "question" && snap.question) {
+        titleEl.textContent = `Domanda ${snap.currentIndex + 1} • ${snap.timeLeft}s`;
+        subEl.textContent = myChosenOption !== null ? "Risposta inviata! Attendi lo svelamento..." : "Premi la risposta corretta!";
+        btns.forEach((b, i) => {
+          b.querySelector(".ans-label").textContent = snap.question.options[i] || "";
+          b.disabled = myChosenOption !== null;
+          b.style.outline = myChosenOption === i ? "4px solid #ffffff" : "none";
+          b.onclick = () => {
+            if (myChosenOption !== null) return;
+            myChosenOption = i;
+            sfx.buzz();
+            if (navigator.vibrate) navigator.vibrate(45);
+            state.hostConn.send({ type: "SUBMIT_ANSWER", teamId: state.myTeamId, optionIdx: i });
+            renderTeamClient(snap);
+          };
+        });
+      } else if (snap.phase === "revealed" && snap.question) {
+        const correct = snap.question.correct;
+        const won = myChosenOption === correct;
+        titleEl.textContent = won ? "🎉 RISPOSTA ESATTA!" : myChosenOption === null ? "⏰ Tempo Scaduto!" : "❌ Risposta Sbagliata";
+        subEl.textContent = me && me.lastDelta ? `Variazione: ${me.lastDelta > 0 ? "+" : ""}${me.lastDelta} 🪙 Pierini` : "Guarda la TV!";
+        btns.forEach((b, i) => {
+          b.disabled = true;
+          b.style.outline = i === correct ? "4px solid #34d399" : "none";
+        });
+      } else {
+        titleEl.textContent = snap.phase === "lobby" ? "Sei dentro! Guarda la TV" : "Classifica sulla TV";
+        subEl.textContent = "Preparati per la prossima domanda...";
+        btns.forEach((b) => {
+          b.disabled = true;
+          b.style.outline = "none";
+        });
+      }
+    }
+
+    function renderRemoteClient(snap) {
+      document.getElementById("remote-phase-badge").textContent = snap.phase.toUpperCase();
+      const answered = snap.teams.filter((t) => t.hasAnswered).length;
+      document.getElementById("remote-answers-badge").textContent = `Risposte: ${answered}/${snap.teams.length}`;
+
+      const secretBox = document.getElementById("remote-secret-answer");
+      const audioCtrl = document.getElementById("remote-audio-controls");
+
+      if (snap.question) {
+        document.getElementById("remote-q-text").textContent = `${snap.currentIndex + 1}/${snap.totalQuestions}: ${snap.question.question}`;
+        secretBox.classList.remove("hidden");
+        const letters = ["A", "B", "C", "D"];
+        const cIdx = snap.question.secretCorrect;
+        secretBox.textContent = `✅ Esatta: ${letters[cIdx]} — ${snap.question.options[cIdx]}`;
+        audioCtrl.classList.toggle("hidden", snap.question.subtype !== "audio");
+      } else {
+        document.getElementById("remote-q-text").textContent = "In lobby: pronto ad avviare la partita";
+        secretBox.classList.add("hidden");
+        audioCtrl.classList.add("hidden");
+      }
+
+      document.getElementById("remote-teams-list").innerHTML = snap.teams
+        .map(
+          (t) => `
+          <div class="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-900/70">
+            <span>${t.rank}. ${t.emoji} ${t.name} ${t.hasAnswered ? "✓" : ""}</span>
+            <span class="font-mono font-bold text-amber-300">${t.score} 🪙</span>
+          </div>`
+        )
+        .join("");
+    }
+
+    // =========================================================================
+    // 9. NAVIGAZIONE & EVENT LISTENER
+    // =========================================================================
+    function showScreen(id) {
+      ["screen-landing", "screen-tv", "screen-team", "screen-remote"].forEach((s) => {
+        document.getElementById(s).classList.toggle("hidden", s !== id);
+      });
+    }
+
+    function bindEvents() {
+      // Landing
+      document.getElementById("btn-choose-tv").onclick = () => {
+        sfx.init();
+        startTVHost();
+      };
+      document.getElementById("btn-choose-team").onclick = () => {
+        sfx.init();
+        initTeamScreen();
+      };
+      document.getElementById("btn-choose-remote").onclick = () => {
+        sfx.init();
+        initRemoteScreen();
+      };
+
+      // Home buttons
+      document.getElementById("tv-btn-home").onclick = () => location.reload();
+      document.getElementById("team-btn-home").onclick = () => location.reload();
+      document.getElementById("remote-btn-home").onclick = () => location.reload();
+
+      // Header TV toggles
+      document.getElementById("tv-btn-dj-toggle").onclick = (e) => {
+        djVoice.enabled = !djVoice.enabled;
+        if (!djVoice.enabled) djVoice.stopAll();
+        e.target.textContent = `🎙️ DJ ${djVoice.enabled ? "ON" : "OFF"}`;
+      };
+      document.getElementById("tv-btn-sound").onclick = (e) => {
+        sfx.enabled = !sfx.enabled;
+        e.target.textContent = `🔊 Audio ${sfx.enabled ? "ON" : "OFF"}`;
+      };
+      document.getElementById("tv-btn-double").onclick = () => {
+        state.doublePoints = !state.doublePoints;
+        renderTV();
+        broadcastState();
+      };
+      document.getElementById("tv-btn-suspense").onclick = () => {
+        state.suspenseMode = !state.suspenseMode;
+        renderTV();
+        broadcastState();
+      };
+
+      // Lobby TV settings
+      document.querySelectorAll(".timer-preset-btn").forEach((btn) => {
+        btn.onclick = () => {
+          state.timerDuration = Number(btn.dataset.sec) || 15;
+          document.querySelectorAll(".timer-preset-btn").forEach((b) => {
+            b.className = "timer-preset-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700";
+          });
+          btn.className = "timer-preset-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500 text-slate-950";
+        };
+      });
+
+      document.getElementById("tv-btn-penalty").onclick = (e) => {
+        state.penaltyEnabled = !state.penaltyEnabled;
+        e.target.textContent = state.penaltyEnabled ? "Attivo (-200 🪙)" : "Disattivato";
+        e.target.className = state.penaltyEnabled
+          ? "px-3 py-1 rounded-lg text-xs font-bold bg-rose-500/25 border border-rose-400/40 text-rose-200 transition"
+          : "px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
+      };
+
+      // Preset Categorie
+      document.getElementById("tv-cat-all").onclick = () => {
+        state.selectedCategories = new Set(state.allQuestions.map((q) => q.category));
+        rebuildDeck();
+        renderCategoryPills();
+      };
+      document.getElementById("tv-cat-culture").onclick = () => {
+        state.selectedCategories = new Set([
+          "Storia & Geografia",
+          "Letteratura & Arte",
+          "Sport",
+          "Scienza & Attualità",
+          "Hobby & Curiosità"
+        ]);
+        rebuildDeck();
+        renderCategoryPills();
+      };
+      document.getElementById("tv-cat-show").onclick = () => {
+        state.selectedCategories = new Set(["Film", "Serie TV", "Cartoni Animati"]);
+        rebuildDeck();
+        renderCategoryPills();
+      };
+      document.getElementById("tv-cat-songs").onclick = () => {
+        state.selectedCategories = new Set(["Canzoni"]);
+        rebuildDeck();
+        renderCategoryPills();
+      };
+      document.getElementById("tv-btn-shuffle").onclick = () => {
+        rebuildDeck();
+        showToast("Mazzo rimescolato!", "info");
+      };
+
+      // Squadra Demo & Start
+      document.getElementById("tv-btn-add-demo").onclick = () => {
+        const names = ["I Falchi", "Le Tigri", "Quizzettari", "Gli Invincibili", "Team Palermo"];
+        const n = names[state.teams.size % names.length] + " " + (state.teams.size + 1);
+        const id = "demo_" + Date.now() + Math.random().toString(36).slice(2, 5);
+        state.teams.set(id, {
+          id,
+          name: n,
+          emoji: TEAM_EMOJIS[state.teams.size % TEAM_EMOJIS.length],
+          score: Math.floor(Math.random() * 4) * 300,
+          lastAnswer: null,
+          lastTimeMs: null,
+          lastDelta: 0
+        });
+        renderTV();
+        broadcastState();
+      };
+      document.getElementById("tv-btn-welcome-intro").onclick = () => hostPlayWelcomeIntro();
+      document.getElementById("tv-btn-lobby-dj-stop").onclick = () => {
+        djVoice.stopAll();
+        djVoice.setStatus("Intervento fermato", false);
+      };
+      document.getElementById("tv-btn-start-game").onclick = () => hostStartGame();
+
+      // Azioni Domanda & Classifica TV
+      document.getElementById("tv-btn-audio-toggle").onclick = (e) => {
+        const playing = musicPlayer.toggle();
+        e.target.textContent = playing ? "⏸️ Pausa" : "▶️ Riprendi";
+      };
+      document.getElementById("tv-btn-audio-restart").onclick = () => musicPlayer.restart();
+      document.getElementById("tv-btn-reveal").onclick = () => hostRevealAnswer();
+      document.getElementById("tv-btn-leaderboard").onclick = () => hostShowLeaderboard("general");
+      document.getElementById("tv-btn-next").onclick = () => hostNextQuestion(false);
+      document.getElementById("tv-btn-lb-next").onclick = () => hostNextQuestion(true);
+      document.getElementById("tv-btn-lb-podium").onclick = () => hostShowPodium();
+      document.getElementById("tv-btn-dj-replay").onclick = () => djVoice.replay();
+
+      // Podio Finale Step-by-Step
+      document.getElementById("tv-btn-reveal-podium").onclick = () => {
+        state.podiumStep += 1;
+        const sorted = getSortedTeams();
+        if (state.podiumStep === 1 && sorted[2]) {
+          sfx.reveal();
+          djVoice.speak(`Marco: Al terzo posto, con ${sorted[2].score} Pierini, applaudiamo ${sorted[2].name}!\nGiulia: Grandissimo podio per loro!`);
+        } else if (state.podiumStep === 2 && sorted[1]) {
+          sfx.reveal();
+          djVoice.speak(`Giulia: Medaglia d'argento e secondo posto per ${sorted[1].name} a quota ${sorted[1].score} Pierini!\nMarco: Ci siamo quasi, ora il primo posto!`);
+        } else if (state.podiumStep >= 3 && sorted[0]) {
+          sfx.fanfare();
+          launchConfetti();
+          djVoice.speak(
+            `Marco: Ed ecco i campioni assoluti della serata con ben ${sorted[0].score} Pierini: ${sorted[0].name}!\n` +
+            `Giulia: Applausi a scena aperta da Radio Quiz Night! Che serata fantastica!`
+          );
+        }
+        renderTV();
+      };
+
+      document.getElementById("tv-btn-restart-same").onclick = () => {
+        state.teams.forEach((t) => {
+          t.score = 0;
+          t.lastAnswer = null;
+          t.lastDelta = 0;
+        });
+        rebuildDeck();
+        hostStartGame();
+      };
+
+      // Modale Voce AI (Marco & Giulia)
+      const djModal = document.getElementById("modal-dj-settings");
+      const djKeyInput = document.getElementById("input-dj-apikey");
+      const djBedSelect = document.getElementById("select-dj-bed");
+
+      const openDjModal = () => {
+        try {
+          djKeyInput.value = localStorage.getItem("quiz_gemini_api_key") || "";
+          djBedSelect.value = localStorage.getItem("quiz_dj_bed_choice") || "random";
+        } catch (e) {}
+        djModal.classList.remove("hidden");
+      };
+
+      document.getElementById("tv-btn-dj-settings").onclick = openDjModal;
+      document.getElementById("tv-btn-dj-settings-header").onclick = openDjModal;
+      document.getElementById("btn-close-dj-settings").onclick = () => djModal.classList.add("hidden");
+
+      document.getElementById("btn-save-dj-apikey").onclick = () => {
+        const val = djKeyInput.value.trim();
+        const bed = djBedSelect.value || "random";
+        try {
+          if (val) localStorage.setItem("quiz_gemini_api_key", val);
+          else localStorage.removeItem("quiz_gemini_api_key");
+          localStorage.setItem("quiz_dj_bed_choice", bed);
+        } catch (e) {}
+        djVoice.refreshKeyIndicator();
+        djVoice.preloadRadioBed();
+        djModal.classList.add("hidden");
+        showToast(val ? "Chiave Gemini salvata! Marco & Giulia pronti." : "Impostazioni salvate!", "success");
+      };
+
+      document.getElementById("btn-test-dj-voice").onclick = () => {
+        const val = djKeyInput.value.trim();
+        const bed = djBedSelect.value || "random";
+        try {
+          if (val) localStorage.setItem("quiz_gemini_api_key", val);
+          localStorage.setItem("quiz_dj_bed_choice", bed);
+        } catch (e) {}
+        djVoice.refreshKeyIndicator();
+        djVoice.enabled = true;
+        djVoice.speak(
+          "Marco: Prova microfono uno, due, tre! Qui Marco in diretta da Radio Quiz Night!\n" +
+          "Giulia: Ciao a tutti da Giulia! Le voci sono caldissime e siamo pronti a distribuire una pioggia di Pierini questa sera!",
+          true
+        );
+      };
+
+      // Modale Gestione Domande & JSON
+      const deckModal = document.getElementById("modal-deck");
+      document.getElementById("tv-btn-deck").onclick = () => {
+        document.getElementById("modal-deck-total").textContent = state.allQuestions.length;
+        document.getElementById("modal-deck-list").innerHTML = state.allQuestions
+          .map(
+            (q, i) => `
+            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2">
+              <span class="text-slate-300"><strong class="text-sky-400">#${i + 1} [${q.category}]</strong> ${q.question}</span>
+              <span class="text-emerald-400 font-bold shrink-0">${q.options[q.correct]}</span>
+            </div>`
+          )
+          .join("");
+        deckModal.classList.remove("hidden");
+      };
+      document.getElementById("btn-close-deck").onclick = () => deckModal.classList.add("hidden");
+
+      document.getElementById("btn-download-sample-json").onclick = () => {
+        const sample = [
+          {
+            category: "Storia & Geografia",
+            question: "Qual è il punto più profondo degli oceani terrestri?",
+            options: ["Fossa delle Marianne", "Fossa di Giava", "Fossa di Porto Rico", "Abisso Calypso"],
+            correct: 0
+          },
+          {
+            category: "Canzoni",
+            subtype: "audio",
+            question: "Indovina il titolo di questo brano:",
+            searchTerm: "Queen Bohemian Rhapsody",
+            artist: "Queen",
+            songTitle: "Bohemian Rhapsody",
+            options: ["Bohemian Rhapsody", "Somebody to Love", "We Are the Champions", "Radio Ga Ga"],
+            correct: 0
+          }
+        ];
+        const blob = new Blob([JSON.stringify(sample, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "modello_domande_quiz.json";
+        a.click();
+      };
+
+      document.getElementById("btn-import-json").onclick = () => {
+        try {
+          const parsed = JSON.parse(document.getElementById("textarea-import-json").value);
+          if (!Array.isArray(parsed) || !parsed.length) throw new Error("Array non valido");
+          state.allQuestions = parsed;
+          state.selectedCategories = new Set(parsed.map((q) => q.category || "Generale"));
+          rebuildDeck();
+          renderCategoryPills();
+          document.getElementById("tv-deck-count").textContent = state.allQuestions.length;
+          deckModal.classList.add("hidden");
+          showToast(`Caricate ${parsed.length} domande personalizzate!`, "success");
+        } catch (e) {
+          showToast("JSON non valido: controlla parentesi e virgolette.", "warn");
+        }
+      };
+
+      document.getElementById("btn-reset-default-deck").onclick = () => {
+        state.allQuestions = [...DEFAULT_QUESTIONS];
+        state.selectedCategories = new Set(DEFAULT_QUESTIONS.map((q) => q.category));
+        rebuildDeck();
+        renderCategoryPills();
+        document.getElementById("tv-deck-count").textContent = state.allQuestions.length;
+        deckModal.classList.add("hidden");
+        showToast("Ripristinate tutte le 80 domande originali!", "success");
+      };
+
+      // Regia Remota Comandi
+      document.getElementById("remote-btn-start").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "START_OR_NEXT" });
+      document.getElementById("remote-btn-reveal").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "REVEAL" });
+      document.getElementById("remote-btn-leaderboard").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "LEADERBOARD" });
+      document.getElementById("remote-btn-dj-flash").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "DJ_FLASH" });
+      document.getElementById("remote-btn-welcome-intro").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "WELCOME_INTRO" });
+      document.getElementById("remote-btn-double").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "TOGGLE_DOUBLE" });
+      document.getElementById("remote-btn-suspense").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "TOGGLE_SUSPENSE" });
+      document.getElementById("remote-btn-audio-toggle").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "AUDIO_TOGGLE" });
+      document.getElementById("remote-btn-audio-restart").onclick = () =>
+        state.hostConn?.send({ type: "REMOTE_CMD", cmd: "AUDIO_RESTART" });
+
+      document.querySelectorAll(".remote-timer-btn").forEach((b) => {
+        b.onclick = () =>
+          state.hostConn?.send({ type: "REMOTE_CMD", cmd: "SET_TIMER", sec: Number(b.dataset.sec) });
+      });
+    }
+
+    // Avvio automatico da URL QR Code (?room=XXXX&role=team)
+    window.addEventListener("DOMContentLoaded", () => {
+      bindEvents();
+      const params = new URLSearchParams(window.location.search);
+      const room = params.get("room");
+      const role = params.get("role");
+      if (room && role === "team") {
+        initTeamScreen(room);
+      } else if (room && role === "remote") {
+        initRemoteScreen(room);
+      }
+    });
+  </script>
+</body>
+</html>
